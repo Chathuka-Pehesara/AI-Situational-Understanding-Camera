@@ -4,7 +4,7 @@ from detection.tracker import is_moving
 from reasoning.rule_engine import evaluate_situation
 from reasoning.explainer import generate_explanation
 from reasoning.scorer import compute_scores
-from logging.event_logger import log_event
+from custom_logging.event_logger import log_event
 from ui.opencv_view import render_overlay
 
 def main():
