@@ -16,7 +16,7 @@ situational-camera/
 │   ├── rule_engine.py    # Situation rules (Person+Phone+Movement -> situation)
 │   ├── explainer.py      # Maps situation -> human-readable sentence
 │   └── scorer.py         # Focus Score (0-100) and Safety Score (0-10) logic
-├── logging/
+├── custom_logging/
 │   ├── __init__.py
 │   └── event_logger.py   # Writes situation changes to CSV
 ├── ui/
@@ -68,7 +68,7 @@ situational-camera/
 }
 ```
 
-### Event Logging (`logging/event_logger.py`)
+### Event Logging (`custom_logging/event_logger.py`)
 `log_event(event)` logs a dictionary representation of the evaluated state to `data/events_log.csv`.
 
 ### Overlay Renderer (`ui/opencv_view.py`)
