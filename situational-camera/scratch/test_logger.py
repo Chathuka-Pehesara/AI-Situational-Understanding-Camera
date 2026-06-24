@@ -3,7 +3,7 @@ import sys
 import csv
 from custom_logging.event_logger import log_event, reset_logger
 
-sys.pat.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def run_logger_test():
     print("Logger event testing...")
@@ -29,7 +29,7 @@ def run_logger_test():
     event2 = {
         "timestamp": "2026-05-23 13:30:01",
         "objects": "person",
-        "situation": "Walking normally",
+        "situation": "Texting while walking",
         "risk": "Low",
         "score": 2
     }
@@ -39,7 +39,7 @@ def run_logger_test():
     event3 = {
         "timestamp": "2026-05-23 13:30:05",
         "objects": "person, cellphone, ",
-        "situation": "Texting while walking",
+        "situation": "Safe walking",
         "risk": "Medium",
         "score": 4
     }
@@ -52,7 +52,7 @@ def run_logger_test():
     with open(log_file, mode="r", newline="", encoding="utf-8") as f:
         reader = list(csv.DictReader(f))
     print(f"Logged rows count: {len(reader)}")
-    
+
     assert len(reader)  == 2, "Duplicate situation was not filtered out correctly"
     assert reader[0]["situation"] == "Texting while walking"
     assert reader[1]["situation"] == "safe walking"
