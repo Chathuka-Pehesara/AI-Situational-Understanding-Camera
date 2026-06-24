@@ -1,3 +1,5 @@
+from explanation.explanation_generator import get_explanation
+
 def generate_explanation(situation: str) -> str:
     """
     Generates a human-readable explanation sentence explaining the current situation.
@@ -8,5 +10,5 @@ def generate_explanation(situation: str) -> str:
     Returns:
         str: A human-readable sentence explaining the situation.
     """
-    # TODO: implement mapping from situation to human-readable sentence
-    pass
+    return get_explanation(situation)
+
