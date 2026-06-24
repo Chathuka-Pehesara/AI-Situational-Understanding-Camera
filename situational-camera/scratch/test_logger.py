@@ -1,9 +1,9 @@
 import os
 import sys
 import csv
-from custom_logging.event_logger import log_event, reset_logger
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from custom_logging.event_logger import log_event, reset_logger
 
 def run_logger_test():
     print("Logger event testing...")
@@ -55,7 +55,7 @@ def run_logger_test():
 
     assert len(reader)  == 2, "Duplicate situation was not filtered out correctly"
     assert reader[0]["situation"] == "Texting while walking"
-    assert reader[1]["situation"] == "safe walking"
+    assert reader[1]["situation"] == "Safe walking"
 
     print("Sucesss: Event Logger tests passed!")
 
