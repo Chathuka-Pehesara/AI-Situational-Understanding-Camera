@@ -1,3 +1,5 @@
+from rules.rule_engine import detect_situation
+
 def evaluate_situation(detections, movement_detected) -> dict:
     """
     Evaluates situation rules (e.g., Person + Phone + Movement) to determine 
@@ -14,5 +16,4 @@ def evaluate_situation(detections, movement_detected) -> dict:
                 "risk": str        # Risk level (e.g., "Low", "Medium", "High")
             }
     """
-    # TODO: implement situation evaluation rules (e.g. Person+Phone+Movement -> situation)
-    pass
+    return detect_situation(detections, movement_detected)
