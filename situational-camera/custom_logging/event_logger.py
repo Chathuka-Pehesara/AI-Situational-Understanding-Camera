@@ -1,3 +1,4 @@
+
 import os
 import csv
 
@@ -33,4 +34,6 @@ def log_event(event: dict):
             })
     except Exception as e:
         print(f"Error logging event to CSV: {e}")
+
+
 
