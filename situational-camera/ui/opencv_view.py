@@ -35,7 +35,7 @@ def render_overlay(frame, detections, situation, risk):
         confidence = detection.get("confidence")
 
         # Draw bounding box
-        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), risk_color=2)
+        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), risk_color, 2)
 
         # Build detection label text
         label_text = label
@@ -49,7 +49,7 @@ def render_overlay(frame, detections, situation, risk):
         tag_x2 = x1 + text_width + 2
         tag_y2 = y1
 
-        cv2.rectangle(annotated_frame, (tag_x1, tag_y1), (tag_x2, tag_y2), risk_color =-1)
+        cv2.rectangle(annotated_frame, (tag_x1, tag_y1), (tag_x2, tag_y2), risk_color, -1)
 
         # Decide text color based on background 
         text_color = (0, 0, 0) if risk_lower == "medium" else (255, 255, 255)
@@ -68,10 +68,10 @@ def render_overlay(frame, detections, situation, risk):
         banner_height = 50
 
         overelay = annotated_frame.copy()
-        cv2.rectangle(overelay, (0, 0, 0), (w, banner_height), (30, 30, 30), -1) 
+        cv2.rectangle(overelay, (0, 0), (w, banner_height), (30, 30, 30), -1) 
 
         alpha = 0.7
-        cv2.addWeight(overelay, alpha, annotated_frame, 1 - alpha, 0, annotated_frame)
+        cv2.addWeighted(overelay, alpha, annotated_frame, 1 - alpha, 0, annotated_frame)
 
         # Draw situational label and description
         situation_label = f"Situation: {situation}"
