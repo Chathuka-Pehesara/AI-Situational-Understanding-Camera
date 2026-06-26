@@ -64,7 +64,7 @@ def render_overlay(frame, detections, situation, risk):
         )
 
         # Draw situation text + risk level banner at the top of the frame
-        h, x, _ = annotated_frame.shape
+        h, w, _ = annotated_frame.shape
         banner_height = 50
 
         overelay = annotated_frame.copy()
