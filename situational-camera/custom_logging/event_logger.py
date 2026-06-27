@@ -2,15 +2,18 @@
 import os
 import csv
 
+_last_situation = None # To store logged situation
+
 def log_event(event: dict):
-    """
-    Logs situational changes or events to a CSV file.
 
-    Parameters:
-        event (dict): Event details to log (e.g. timestamp, situation, risk, score).
+    global _last_situation
 
-    Appends details to 'data/events_log.csv'.
-    """
+    situation = event.get("situation")
+    if situation == _last_situation:
+        return 
+
+    _last_situation = situation
+
     CSV_FILE = "data/events_log.csv"
     
     # Ensure data directory exists
@@ -35,5 +38,7 @@ def log_event(event: dict):
     except Exception as e:
         print(f"Error logging event to CSV: {e}")
 
-
+def reset_logger():
+    global _last_situation
+    _last_situation = None
 
