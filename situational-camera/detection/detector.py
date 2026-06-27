@@ -25,23 +25,7 @@ def _get_model():
     return _model
 
 def detect_objects(frame):
-    """
-    Runs object detection on the input video frame using YOLOv8.
-
-    Parameters:
-        frame (numpy.ndarray): The input image frame.
-
-    Returns:
-        list: A list of dicts in the following exact format:
-            [
-                {
-                    "label": str, 
-                    "bbox": [x1, y1, x2, y2], 
-                    "confidence": float
-                },
-                ...
-            ]
-    """
+ 
     if frame is None:
         return []
 
@@ -58,12 +42,16 @@ def detect_objects(frame):
                 conf = float(box.conf[0].item())
                 cls_id = int(box.cls[0].item())
 
+                # Get tracking ID assigned by YOLOv8 
+                track_id = int(box.id[0].item()) if box.id is not None else None
+
                 label = CLASS_MAPPING.get(cls_id)
                 if label is not None:
                     detections.append({
                         "label": label,
                         "bbox": [float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])],
-                        "confidence": conf
+                        "confidence": conf,
+                        "track_id": track_id
                     })
 
     return detections
