@@ -13,7 +13,7 @@ from custom_logging.event_logger import log_event
 def main():
 
     # TODO: Initialize camera feed / video capture
-    parser = argparse.ArugumentParser(description="AI Situational Understanding Camera Pipeline")
+    parser = argparse.ArgumentParser(description="AI Situational Understanding Camera Pipeline")
     parser.add_argument(
         "--source",
         type = str,
@@ -72,19 +72,7 @@ def main():
             # Step 6: Compute focus and safety scores
             scores = compute_scores(situation, risk, detections)
             
-            # --- MOCK DATA FOR TESTING THE FLOW ---
-            frame = None
-            detections = [{"label": "person", "bbox": [100, 100, 200, 200]}, {"label": "cell phone", "bbox": [120, 120, 150, 150]}]
-            movement_detected = True
-            
-            situation = "Walking while texting"
-            risk = "Medium"
-            explanation = "Person is moving while holding a mobile phone."
-            scores = {
-                "focus_score": 30,
-                "safety_score": 5
-            }
-             # --------------------------------------
+
     
             # Step 7: Log events if situation changes
             timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -113,9 +101,9 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
     finally:
-        # CLean up response
+        # Clean up resources
         cap.release()
-        cv2.destroyALlWindow()
+        cv2.destroyAllWindows()
         print("Pipeline shut down. Resources released cleanly.")
 
 if __name__ == "__main__":
