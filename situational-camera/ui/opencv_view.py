@@ -63,41 +63,41 @@ def render_overlay(frame, detections, situation, risk):
             cv2.LINE_AA
         )
 
-        # Draw situation text + risk level banner at the top of the frame
-        h, w, _ = annotated_frame.shape
-        banner_height = 50
+    # Draw situation text + risk level banner at the top of the frame
+    h, w, _ = annotated_frame.shape
+    banner_height = 50
 
-        overelay = annotated_frame.copy()
-        cv2.rectangle(overelay, (0, 0), (w, banner_height), (30, 30, 30), -1) 
+    overlay = annotated_frame.copy()
+    cv2.rectangle(overlay, (0, 0), (w, banner_height), (30, 30, 30), -1) 
 
-        alpha = 0.7
-        cv2.addWeighted(overelay, alpha, annotated_frame, 1 - alpha, 0, annotated_frame)
+    alpha = 0.7
+    cv2.addWeighted(overlay, alpha, annotated_frame, 1 - alpha, 0, annotated_frame)
 
-        # Draw situational label and description
-        situation_label = f"Situation: {situation}"
-        cv2.putText(
-            annotated_frame,
-            situation_label,
-            (15, 32),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (255, 255, 255),
-            2,
-            cv2.LINE_AA
-        )
+    # Draw situational label and description
+    situation_label = f"Situation: {situation}"
+    cv2.putText(
+        annotated_frame,
+        situation_label,
+        (15, 32),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.6,
+        (255, 255, 255),
+        2,
+        cv2.LINE_AA
+    )
 
-        # Draw risk-level text (right-aligned)
-        risk_label = f"Risk: {risk.upper()}"
-        (r_width, r_height), _ = cv2.getTextSize(risk_label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-        cv2.putText(
-            annotated_frame,
-            risk_label,
-            (w - r_width - 15, 32),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            risk_color,
-            2,
-            cv2.LINE_AA
-        ) 
+    # Draw risk-level text (right-aligned)
+    risk_label = f"Risk: {risk.upper()}"
+    (r_width, r_height), _ = cv2.getTextSize(risk_label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+    cv2.putText(
+        annotated_frame,
+        risk_label,
+        (w - r_width - 15, 32),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.6,
+        risk_color,
+        2,
+        cv2.LINE_AA
+    ) 
 
-        return annotated_frame 
+    return annotated_frame
