@@ -1,45 +1,46 @@
 import math
 
-_previous_centers = {}        # to store previous frame's centrer coordinates for each person
-MOVEMENT_THRESHOLD = 5.0      # distance threshold in pixels above which movement is flagged as True
+# Store history of centers for each person: {person_id: [ (cx, cy), ... ]}
+_history = {}
+MAX_HISTORY_LEN = 10
+MOVEMENT_THRESHOLD = 15.0  # pixels (displacement threshold to be considered moving)
 
 def is_moving(person_id, current_bbox) -> bool:
+    """
+    Compares bounding box centers across frames for a specific person
+    to determine if they are moving.
 
-    global _previous_centers
+    Parameters:
+        person_id (int/str): Unique identifier for the tracked person.
+        current_bbox (list): Current bounding box coordinates [x1, y1, x2, y2].
 
+    Returns:
+        bool: True if significant movement is detected, False otherwise.
+    """
+    global _history
     if not current_bbox or len(current_bbox) < 4:
         return False
 
-    x1, y1, x2, y2 = current_bbox
+    # Calculate center of current bounding box
+    cx = (current_bbox[0] + current_bbox[2]) / 2.0
+    cy = (current_bbox[1] + current_bbox[3]) / 2.0
+    current_center = (cx, cy)
 
-    # step 1: calculate the center of the bounding box
-    current_center_x = (x1 + x2) /2.0
-    current_center_y = (y1 + y2) /2.0
+    if person_id not in _history:
+        _history[person_id] = [current_center]
+        return False
 
-    # step 2: check if have a previous record for this person
-    if person_id in _previous_centers:
-        prev_center_x, prev_center_y = _previous_centers[person_id]
-        
-        # step 3: Compute Eulidean disatance to the previous center
-        distance = math.sqrt(
-            (current_center_x - prev_center_x) ** 2 +
-            (current_center_y - prev_center_y) ** 2
-        )
-
-        # flag movement if distance exeeds the threshold
-        movement_detected = distance > MOVEMENT_THRESHOLD
-    else:
-        movement_detected = False  # new person
+    history = _history[person_id]
     
-    # step 4: update the store center for this person
-    _previous_centers[person_id] = (current_center_x, current_center_y)
-
-    return movement_detected
- 
-# to clear stored tracking history for new video feeds or tests 
-def reset_tracker():
-
-    global _previous_centers
-    _previous_centers.clear()
+    # Calculate distance from the oldest recorded position in history to current position
+    oldest_center = history[0]
+    distance = math.sqrt((cx - oldest_center[0])**2 + (cy - oldest_center[1])**2)
     
+    # Add new center to history and trim
+    history.append(current_center)
+    if len(history) > MAX_HISTORY_LEN:
+        history.pop(0)
+
+    # If the displacement is above threshold, person is moving
+    return distance >= MOVEMENT_THRESHOLD
 
