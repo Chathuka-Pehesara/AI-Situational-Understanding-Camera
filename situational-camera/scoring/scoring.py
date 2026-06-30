@@ -20,35 +20,36 @@ def calculate_scores(situation, risk, detections=None):
     focus_score = 100
     safety_score = 10
 
+    # Risk level base modifiers
     if risk == "High":
         focus_score -= 40
         safety_score -= 5
-
     elif risk == "Medium":
         focus_score -= 20
         safety_score -= 3
-
     elif risk == "Low":
         focus_score -= 5
         safety_score -= 1
 
+    # Situation specific modifiers
     if situation == "Distracted Walking":
         focus_score -= 20
         safety_score -= 2
-
     elif situation == "Hurrying":
         focus_score -= 10
         safety_score -= 1
-
     elif situation == "Working":
-        focus_score += 0
-        safety_score += 0
-
-    elif situation == "Resting":
+        # Working is a highly focused and safe activity, offsetting the low risk deduction
         focus_score += 5
+        safety_score += 1
+    elif situation == "Resting":
+        # Resting is safe, offsetting the low risk deduction
+        focus_score += 5
+        safety_score += 1
 
-    if detections:
-        labels = [item["label"] for item in detections]
+    # Object-specific modifiers
+    if detections and isinstance(detections, list):
+        labels = [item.get("label") for item in detections if isinstance(item, dict) and "label" in item]
 
         if "phone" in labels:
             focus_score -= 10
@@ -56,6 +57,7 @@ def calculate_scores(situation, risk, detections=None):
         if "car" in labels:
             safety_score -= 2
 
+    # Clamp scores to their defined boundaries
     focus_score = max(0, min(100, focus_score))
     safety_score = max(0, min(10, safety_score))
 
@@ -81,4 +83,4 @@ if __name__ == "__main__":
     print("Situation:", result["situation"])
     print("Risk:", result["risk"])
     print("Focus Score:", result["focus_score"])
-    print("Safety Score:", result["safety_score"])
+    print("Safety Score:", result["safety_score"])

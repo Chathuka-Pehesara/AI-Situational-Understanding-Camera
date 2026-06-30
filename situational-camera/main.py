@@ -1,110 +1,98 @@
-from doctest import REPORT_NDIFF
+# Import all modules to establish project structure and verification
 import cv2
+import datetime
 import sys
-import argparse
-from datetime import datetime
 from detection.detector import detect_objects
-from detection.tracker import is_moving, reset_tracker
+from detection.tracker import is_moving
 from reasoning.rule_engine import evaluate_situation
 from reasoning.explainer import generate_explanation
 from reasoning.scorer import compute_scores
-from ui.opencv_view import render_overlay
 from custom_logging.event_logger import log_event
+from ui.opencv_view import render_overlay
+
 def main():
-
-    # TODO: Initialize camera feed / video capture
-    parser = argparse.ArgumentParser(description="AI Situational Understanding Camera Pipeline")
-    parser.add_argument(
-        "--source",
-        type = str,
-        default = "0",
-        help = "Webcam index (e.g. 0) or path to a local video file (e.g. path/to/video.mp4)"   
-    )
-    args = parser.parse_args()
-
-    # Determine input source
-    source = args.source
-    if source.isdigit():
-        source = int(source)
-
-    # Initialize video capture
-    cap = cv2.VideoCapture(source)
-    if not cap.isOpened():
-        print(f"Error: Could not open video source '{source}'")
+    """
+    Main entry point for the AI Situational Understanding Camera pipeline.
+    
+    This function initializes the physical camera feed and executes the
+    real-time situational monitoring pipeline on each frame.
+    """
+    print("Initializing camera feed...")
+    # Open the default system camera (webcam index 0)
+    camera = cv2.VideoCapture(0)
+    
+    if not camera.isOpened():
+        print("Error: Could not open video source (webcam). Please check camera connection.")
         sys.exit(1)
-    print(f"\n===========================================================")
-    print(f"Pipeline started successfully on source: {source}")
-    print(f"Press 'q' inside the video window to quit.")
-    print(f"============================================================\n")
-
-    reset_tracker()
-
-    try: 
+        
+    print("Camera feed active. Press 'q' in the window to quit.")
+    
+    last_situation = None
+    
+    try:
         while True:
-            # Step 1: Capture frame
-            ret, frame = cap.read()
-            if not ret:
-                print("End of video stream or failed to grab frame. Exiting...")
+            # Step 1: Capture frame from camera
+            ret, frame = camera.read()
+            if not ret or frame is None:
+                print("Error: Failed to read frame from camera.")
                 break
-
-            # Step 2: Run object detection (YOLOv8 wrapper)
+                
+            # Step 2: Run object detection (YOLOv8 Small)
             detections = detect_objects(frame)
-     
+            
             # Step 3: Track movement (compare bbox centers across frames)
             movement_detected = False
             for detection in detections:
                 if detection["label"] == "person":
-                    track_id = detection.get("track_id")
-
-                    person_id = track_id if track_id is not None else 0
-
-                    if is_moving(person_id, detection["bbox"]):
+                    # Pass a placeholder person track ID (0) to tracker
+                    if is_moving(0, detection["bbox"]):
                         movement_detected = True
-              
+            
             # Step 4: Evaluate situation based on rules
             situation_data = evaluate_situation(detections, movement_detected)
-            situation = situation_data.get("situation", "Normal Activity")
-            risk = situation_data.get("risk", "Low")
-
+            situation = situation_data["situation"]
+            risk = situation_data["risk"]
+            
             # Step 5: Generate explanation text
             explanation = generate_explanation(situation)
-
+            
             # Step 6: Compute focus and safety scores
             scores = compute_scores(situation, risk, detections)
             
-
-    
             # Step 7: Log events if situation changes
-            timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            objects_str = ", ".join([d["label"] for d in detections])
-            score_logged = scores.get("safety_score")
-            log_event({
-                "timestamp": timestamp_str,
-                "situation": situation,
-                "objects": objects_str,
-                "risk": risk,
-                "explanation":explanation,
-                "focus_score": scores.get("focus_score", 100),
-                "safety_score": scores.get("safety_score", 10),
-                "score": scores.get("safety_score", 10)  # Key fallback for backward compatibility
-            })
+            if situation != last_situation:
+                event = {
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "situation": situation,
+                    "risk": risk,
+                    "explanation": explanation,
+                    "focus_score": scores["focus_score"],
+                    "safety_score": scores["safety_score"]
+                }
+                log_event(event)
+                last_situation = situation
+                print(f"[{event['timestamp']}] Event logged: {situation} (Risk: {risk}, Focus: {scores['focus_score']}, Safety: {scores['safety_score']})")
             
             # Step 8: Render output overlays
             output_frame = render_overlay(frame, detections, situation, risk)
-            if output_frame is None:
-                output_frame =  frame
-
-            # Step 9: Display or stream the processed frame
-            cv2.imshow("AI Situational Camera Feed", output_frame)
             
-            # Break loop if 'q' key is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            # Step 9: Display or stream the processed frame
+            if output_frame is not None:
+                cv2.imshow("AI Situational Camera Feed", output_frame)
+            
+            # Check for termination key (press 'q' or 'ESC' to exit)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q') or key == 27:
                 break
+                
+    except KeyboardInterrupt:
+        print("\nPipeline interrupted by user.")
     finally:
-        # Clean up resources
-        cap.release()
+        # Clean up camera and close windows
+        camera.release()
         cv2.destroyAllWindows()
-        print("Pipeline shut down. Resources released cleanly.")
+        print("Camera released. Pipeline shut down cleanly.")
 
 if __name__ == "__main__":
     main()
+

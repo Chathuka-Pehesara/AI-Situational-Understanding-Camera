@@ -1,50 +1,71 @@
-import math
+from ultralytics import YOLO
 
-# Store history of center coordinates for each person
-_person_histories = {}        
+# Initialize YOLOv8 Nano model globally to avoid loading it on every frame
+_model = None
 
-# Parameters for movement filtering
-HISTORY_WINDOW = 15          # Number of frames to check movement over (~0.5 seconds at 30 FPS)
-MOVEMENT_THRESHOLD = 15.0     # Minimum net displacement in pixels over the history window to classify as moving
+# Mappings from COCO class names / indices to the shared data-contract labels
+CLASS_MAPPING = {
+    0: "person",
+    2: "car",
+    24: "bag",       # backpack
+    26: "bag",       # handbag
+    28: "bag",       # suitcase
+    39: "bottle",
+    63: "laptop",
+    67: "phone"      # cell phone
+}
 
-def is_moving(person_id, current_bbox) -> bool:
-    global _person_histories
+TARGET_CLASSES = list(CLASS_MAPPING.keys())
 
-    if not current_bbox or len(current_bbox) < 4:
-        return False
+def _get_model():
+    global _model
+    if _model is None:
+        # Load yolov8s.pt model (will download automatically if not present) for higher accuracy
+        _model = YOLO("yolov8s.pt")
+    return _model
 
-    x1, y1, x2, y2 = current_bbox
+def detect_objects(frame):
+    """
+    Runs object detection on the input video frame using YOLOv8.
 
-    # 1. Calculate the center of the bounding box
-    current_center_x = (x1 + x2) / 2.0
-    current_center_y = (y1 + y2) / 2.0
+    Parameters:
+        frame (numpy.ndarray): The input image frame.
 
-    # 2. Initialize history list if new person
-    if person_id not in _person_histories:
-        _person_histories[person_id] = []
+    Returns:
+        list: A list of dicts in the following exact format:
+            [
+                {
+                    "label": str, 
+                    "bbox": [x1, y1, x2, y2], 
+                    "confidence": float
+                },
+                ...
+            ]
+    """
+    if frame is None:
+        return []
 
-    history = _person_histories[person_id]
-    history.append((current_center_x, current_center_y))
+    model = _get_model()
+    # Run prediction filtering for the target classes with tuned thresholds to optimize accuracy
+    results = model.predict(source=frame, classes=TARGET_CLASSES, conf=0.3, iou=0.45, verbose=False)
 
-    # 3. Maintain history window size
-    if len(history) > HISTORY_WINDOW:
-        history.pop(0)
 
-    # 4. If window is not full, assume stationary until enough data accumulates
-    if len(history) < HISTORY_WINDOW:
-        return False
+    detections = []
+    if len(results) > 0:
+        boxes = results[0].boxes
+        if boxes is not None:
+            for box in boxes:
+                xyxy = box.xyxy[0].tolist()  # [x1, y1, x2, y2]
+                conf = float(box.conf[0].item())
+                cls_id = int(box.cls[0].item())
 
-    # 5. Compute Euclidean distance from the oldest point in the window to the current point
-    oldest_x, oldest_y = history[0]
-    distance = math.sqrt(
-        (current_center_x - oldest_x) ** 2 +
-        (current_center_y - oldest_y) ** 2
-    )
+                label = CLASS_MAPPING.get(cls_id)
+                if label is not None:
+                    detections.append({
+                        "label": label,
+                        "bbox": [float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])],
+                        "confidence": conf
+                    })
 
-    # 6. Flag movement if the net displacement exceeds the threshold
-    movement_detected = distance > MOVEMENT_THRESHOLD
-    return movement_detected
+    return detections
 
-def reset_tracker():
-    global _person_histories
-    _person_histories.clear()
