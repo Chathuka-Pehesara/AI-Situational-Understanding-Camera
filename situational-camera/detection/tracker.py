@@ -1,46 +1,71 @@
-import math
+from ultralytics import YOLO
 
-# Store history of centers for each person: {person_id: [ (cx, cy), ... ]}
-_history = {}
-MAX_HISTORY_LEN = 10
-MOVEMENT_THRESHOLD = 15.0  # pixels (displacement threshold to be considered moving)
+# Initialize YOLOv8 Nano model globally to avoid loading it on every frame
+_model = None
 
-def is_moving(person_id, current_bbox) -> bool:
+# Mappings from COCO class names / indices to the shared data-contract labels
+CLASS_MAPPING = {
+    0: "person",
+    2: "car",
+    24: "bag",       # backpack
+    26: "bag",       # handbag
+    28: "bag",       # suitcase
+    39: "bottle",
+    63: "laptop",
+    67: "phone"      # cell phone
+}
+
+TARGET_CLASSES = list(CLASS_MAPPING.keys())
+
+def _get_model():
+    global _model
+    if _model is None:
+        # Load yolov8s.pt model (will download automatically if not present) for higher accuracy
+        _model = YOLO("yolov8s.pt")
+    return _model
+
+def detect_objects(frame):
     """
-    Compares bounding box centers across frames for a specific person
-    to determine if they are moving.
+    Runs object detection on the input video frame using YOLOv8.
 
     Parameters:
-        person_id (int/str): Unique identifier for the tracked person.
-        current_bbox (list): Current bounding box coordinates [x1, y1, x2, y2].
+        frame (numpy.ndarray): The input image frame.
 
     Returns:
-        bool: True if significant movement is detected, False otherwise.
+        list: A list of dicts in the following exact format:
+            [
+                {
+                    "label": str, 
+                    "bbox": [x1, y1, x2, y2], 
+                    "confidence": float
+                },
+                ...
+            ]
     """
-    global _history
-    if not current_bbox or len(current_bbox) < 4:
-        return False
+    if frame is None:
+        return []
 
-    # Calculate center of current bounding box
-    cx = (current_bbox[0] + current_bbox[2]) / 2.0
-    cy = (current_bbox[1] + current_bbox[3]) / 2.0
-    current_center = (cx, cy)
+    model = _get_model()
+    # Run prediction filtering for the target classes with tuned thresholds to optimize accuracy
+    results = model.predict(source=frame, classes=TARGET_CLASSES, conf=0.3, iou=0.45, verbose=False)
 
-    if person_id not in _history:
-        _history[person_id] = [current_center]
-        return False
 
-    history = _history[person_id]
-    
-    # Calculate distance from the oldest recorded position in history to current position
-    oldest_center = history[0]
-    distance = math.sqrt((cx - oldest_center[0])**2 + (cy - oldest_center[1])**2)
-    
-    # Add new center to history and trim
-    history.append(current_center)
-    if len(history) > MAX_HISTORY_LEN:
-        history.pop(0)
+    detections = []
+    if len(results) > 0:
+        boxes = results[0].boxes
+        if boxes is not None:
+            for box in boxes:
+                xyxy = box.xyxy[0].tolist()  # [x1, y1, x2, y2]
+                conf = float(box.conf[0].item())
+                cls_id = int(box.cls[0].item())
 
-    # If the displacement is above threshold, person is moving
-    return distance >= MOVEMENT_THRESHOLD
+                label = CLASS_MAPPING.get(cls_id)
+                if label is not None:
+                    detections.append({
+                        "label": label,
+                        "bbox": [float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])],
+                        "confidence": conf
+                    })
+
+    return detections
 
