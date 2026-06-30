@@ -20,8 +20,8 @@ TARGET_CLASSES = list(CLASS_MAPPING.keys())
 def _get_model():
     global _model
     if _model is None:
-        # Load yolov8n.pt model (will download automatically if not present)
-        _model = YOLO("yolov8n.pt")
+        # Load yolov8s.pt model (will download automatically if not present) for higher accuracy
+        _model = YOLO("yolov8s.pt")
     return _model
 
 def detect_objects(frame):
@@ -46,8 +46,9 @@ def detect_objects(frame):
         return []
 
     model = _get_model()
-    # Run prediction filtering for the target classes to optimize speed
-    results = model.predict(source=frame, classes=TARGET_CLASSES, verbose=False)
+    # Run prediction filtering for the target classes with tuned thresholds to optimize accuracy
+    results = model.predict(source=frame, classes=TARGET_CLASSES, conf=0.3, iou=0.45, verbose=False)
+
 
     detections = []
     if len(results) > 0:
