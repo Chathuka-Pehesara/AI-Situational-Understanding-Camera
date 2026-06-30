@@ -11,4 +11,3 @@ def generate_explanation(situation: str) -> str:
         str: A human-readable sentence explaining the situation.
     """
     return get_explanation(situation)
-
