@@ -1,9 +1,9 @@
-EXPLANATION_TEMPLATES={
-    "Distracted Walking":"Person is walking while using a phone.",
-    "Working":"Person is working on a laptop.",
-    "Resting":"Person is stationary and appears to be resting.",
-    "Hurrying":"Person is moving quickly with belongings.",
-    "Normal Activity":"Person is performing normal daily activity."
+EXPLANATION_TEMPLATES = {
+    "Distracted Walking": "Person is walking while using a phone.",
+    "Working": "Person is working on a laptop.",
+    "Resting": "Person is stationary and appears to be resting.",
+    "Hurrying": "Person is moving quickly with belongings.",
+    "Normal Activity": "Person is performing normal daily activity."
 }
 
 def get_explanation(situation):
@@ -23,8 +23,8 @@ def get_explanation(situation):
         "No explanation available."
     )
 
-if __name__=="__main__":
-    situations=[
+if __name__ == "__main__":
+    situations = [
         "Distracted Walking",
         "Working",
         "Resting",

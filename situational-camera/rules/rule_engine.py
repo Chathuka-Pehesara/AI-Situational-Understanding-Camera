@@ -55,4 +55,3 @@ def detect_situation(detections, movement_detected):
 
     # Default fallback
     return {"situation": "Normal Activity", "risk": "Low"}
-
