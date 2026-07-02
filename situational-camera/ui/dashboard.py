@@ -4,6 +4,7 @@ import os
 import time
 import sys
 import datetime
+import numpy as np
 
 # Ensure the situational-camera directory is in python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -766,8 +767,10 @@ def trigger_simulated_event(situation):
     sit_name = eval_result["situation"]
     risk_level = eval_result["risk"]
     
-    # Generate explanation
-    explanation = generate_explanation(sit_name)
+    # Create a dummy blank frame for the explainer and generate explanation
+    # (simulator doesn't have a real camera frame; Gemini explainer expects an image)
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    explanation = generate_explanation(frame, preset["detections"], sit_name, risk_level)
     
     # Compute focus/safety scores
     scores = compute_scores(sit_name, risk_level, preset["detections"])
