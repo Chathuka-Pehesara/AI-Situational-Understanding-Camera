@@ -75,14 +75,16 @@ def main():
                         movement_detected = True
                         break
 
-            # Rule engine
+            # Rule engine (with frame for Gemini verification)
             situation_data = evaluate_situation(
                 detections,
-                movement_detected
+                movement_detected,
+                frame
             )
 
             situation = situation_data["situation"]
             risk = situation_data["risk"]
+            gemini_confidence = situation_data.get("confidence", None)
 
             # Gemini explanation
             explanation = generate_explanation(
@@ -92,11 +94,12 @@ def main():
                 risk
             )
 
-            # Scores
+            # Scores (with Gemini confidence)
             scores = compute_scores(
                 situation,
                 risk,
-                detections
+                detections,
+                gemini_confidence
             )
 
             # Log only when situation changes
@@ -108,7 +111,9 @@ def main():
                     "risk": risk,
                     "explanation": explanation,
                     "focus_score": scores["focus_score"],
-                    "safety_score": scores["safety_score"]
+                    "safety_score": scores["safety_score"],
+                    "gemini_confidence": scores.get("gemini_confidence", None),
+                    "gemini_verified": situation_data.get("gemini_verified", False)
                 }
 
                 log_event(event)
@@ -120,7 +125,8 @@ def main():
                     f"{situation} | "
                     f"Risk: {risk} | "
                     f"Focus: {scores['focus_score']} | "
-                    f"Safety: {scores['safety_score']}"
+                    f"Safety: {scores['safety_score']} | "
+                    f"Gemini Confidence: {gemini_confidence if gemini_confidence else 'N/A'}"
                 )
 
             # Draw overlays

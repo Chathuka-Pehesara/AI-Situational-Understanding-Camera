@@ -71,7 +71,7 @@ st.set_page_config(
     page_title="AI Situational Understanding Camera",
     page_icon="🎥",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # Custom Styling (Dark UI + Glassmorphism + Accent Neon Colors)
@@ -382,6 +382,56 @@ css = """
     line-height: 1.5;
 }
 
+/* Gemini Insights Panel */
+.gemini-insights-panel {
+    background: rgba(25, 20, 45, 0.6);
+    border-left: 4px solid #a855f7;
+    padding: 1.25rem;
+    border-radius: 0 16px 16px 0;
+    margin-top: 1.25rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.gemini-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a855f7;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.gemini-text {
+    font-size: 1.05rem;
+    color: #e2e8f0;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.gemini-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+}
+
+.gemini-verified {
+    background: rgba(0, 255, 102, 0.1);
+    color: #00ff66;
+    border: 1px solid rgba(0, 255, 102, 0.25);
+}
+
+.gemini-rule-based {
+    background: rgba(168, 85, 247, 0.1);
+    color: #a855f7;
+    border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
 /* Metric card styling */
 .metrics-container {
     display: grid;
@@ -637,7 +687,7 @@ def get_safety_details(score):
         return (f"{val}/10", "pink", "🛡️")
 
 # Metrics grid HTML compiler
-def render_metrics_grid(situation, risk, focus, safety):
+def render_metrics_grid(situation, risk, focus, safety, gemini_confidence=None):
     sit_val, sit_theme, sit_icon = get_situation_details(situation)
     risk_val, risk_theme, risk_icon = get_risk_details(risk)
     focus_val, focus_theme, focus_icon = get_focus_details(focus)
@@ -857,6 +907,13 @@ def trigger_simulated_event(situation):
     if not preset:
         return None
     
+
+    # Create a dummy blank frame for the explainer and rule engine
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    
+    # Evaluate situation rules using project modules (with frame for Gemini verification)
+    eval_result = evaluate_situation(preset["detections"], preset["movement"], frame)
+
     # 1. Parse active zones from session state
     active_zones = {}
     if st.session_state.get("enable_zone_a", True):
@@ -909,9 +966,18 @@ def trigger_simulated_event(situation):
     
     # Evaluate situation rules using project modules
     eval_result = evaluate_situation(sim_detections, preset["movement"])
+
     sit_name = eval_result["situation"]
     risk_level = eval_result["risk"]
+    gemini_confidence = eval_result.get("confidence", None)
     
+
+    # Generate explanation
+    explanation = generate_explanation(frame, preset["detections"], sit_name, risk_level)
+    
+    # Compute focus/safety scores with Gemini confidence
+    scores = compute_scores(sit_name, risk_level, preset["detections"], gemini_confidence)
+
     # Create a dummy blank frame for the explainer and generate explanation
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     explanation = generate_explanation(frame, sim_detections, sit_name, risk_level)
@@ -926,7 +992,9 @@ def trigger_simulated_event(situation):
         "risk": risk_level,
         "explanation": explanation,
         "focus_score": scores["focus_score"],
-        "safety_score": scores["safety_score"]
+        "safety_score": scores["safety_score"],
+        "gemini_confidence": scores.get("gemini_confidence", None),
+        "gemini_verified": eval_result.get("gemini_verified", False)
     }
     
     # Log to CSV
@@ -1042,6 +1110,7 @@ with left_col:
     st.markdown('</div>', unsafe_allow_html=True)
     
     explanation_placeholder = st.empty()
+    gemini_insights_placeholder = st.empty()
 
 with right_col:
     st.markdown('<div class="section-header">📊 Real-Time Metrics</div>', unsafe_allow_html=True)
@@ -1105,6 +1174,8 @@ while True:
         current_focus = last_row.get("focus_score", 100)
         current_safety = last_row.get("safety_score", 10)
         current_explanation = last_row.get("explanation", "No explanation available.")
+        gemini_confidence = last_row.get("gemini_confidence", None)
+        gemini_verified = last_row.get("gemini_verified", False)
         
         # 1. Update Camera HUD view
         camera_placeholder.markdown(clean_html(render_camera_hud(current_situation, active_zones)), unsafe_allow_html=True)
@@ -1118,10 +1189,42 @@ while True:
         """
         explanation_placeholder.markdown(clean_html(explanation_html), unsafe_allow_html=True)
         
-        # 3. Update Metrics Cards Grid
-        metrics_placeholder.markdown(clean_html(render_metrics_grid(current_situation, current_risk, current_focus, current_safety)), unsafe_allow_html=True)
+        # 3. Update Gemini Insights Panel
+        if gemini_confidence is not None and not pd.isna(gemini_confidence):
+            confidence_pct = f"{float(gemini_confidence) * 100:.0f}%"
+            badge_class = "gemini-verified" if gemini_verified else "gemini-rule-based"
+            badge_text = "Gemini Verified" if gemini_verified else "Rule-Based"
+            
+            gemini_html = f"""
+            <div class="gemini-insights-panel">
+                <div class="gemini-title">
+                    🔮 Gemini Insights
+                    <span class="gemini-badge {badge_class}">{badge_text}</span>
+                </div>
+                <div class="gemini-text">
+                    AI Confidence: {confidence_pct} | Situation confirmed by Gemini Vision analysis.
+                </div>
+            </div>
+            """
+            gemini_insights_placeholder.markdown(clean_html(gemini_html), unsafe_allow_html=True)
+        else:
+            gemini_html = f"""
+            <div class="gemini-insights-panel">
+                <div class="gemini-title">
+                    🔮 Gemini Insights
+                    <span class="gemini-badge gemini-rule-based">Rule-Based</span>
+                </div>
+                <div class="gemini-text">
+                    Using rule-based assessment. Gemini verification available when confidence is low.
+                </div>
+            </div>
+            """
+            gemini_insights_placeholder.markdown(clean_html(gemini_html), unsafe_allow_html=True)
         
-        # 4. Update Event Log table
+        # 4. Update Metrics Cards Grid
+        metrics_placeholder.markdown(clean_html(render_metrics_grid(current_situation, current_risk, current_focus, current_safety, gemini_confidence)), unsafe_allow_html=True)
+        
+        # 5. Update Event Log table
         table_placeholder.markdown(clean_html(render_events_table(df)), unsafe_allow_html=True)
     else:
         # Default Offline/Waiting State
@@ -1134,6 +1237,14 @@ while True:
         </div>
         """
         explanation_placeholder.markdown(clean_html(default_explanation_html), unsafe_allow_html=True)
+        
+        default_gemini_html = """
+        <div class="gemini-insights-panel" style="border-left-color: #475569;">
+            <div class="gemini-title">🔮 Gemini Insights</div>
+            <div class="gemini-text">System initializing. Gemini AI will provide insights when events are detected.</div>
+        </div>
+        """
+        gemini_insights_placeholder.markdown(clean_html(default_gemini_html), unsafe_allow_html=True)
         
         metrics_placeholder.markdown(clean_html(render_metrics_grid("Waiting...", "Unknown", 100, 10)), unsafe_allow_html=True)
         

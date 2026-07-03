@@ -15,7 +15,8 @@ def log_event(event: dict):
     # Ensure data directory exists
     os.makedirs(os.path.dirname(CSV_FILE), exist_ok=True)
     
-    fieldnames = ["timestamp", "situation", "risk", "explanation", "focus_score", "safety_score"]
+    # Include optional Gemini fields
+    fieldnames = ["timestamp", "situation", "risk", "explanation", "focus_score", "safety_score", "gemini_confidence", "gemini_verified"]
     file_exists = os.path.exists(CSV_FILE)
     
     try:
@@ -29,8 +30,9 @@ def log_event(event: dict):
                 "risk": event.get("risk", ""),
                 "explanation": event.get("explanation", ""),
                 "focus_score": event.get("focus_score", 100),
-                "safety_score": event.get("safety_score", 10)
+                "safety_score": event.get("safety_score", 10),
+                "gemini_confidence": event.get("gemini_confidence", ""),
+                "gemini_verified": event.get("gemini_verified", False)
             })
     except Exception as e:
         print(f"Error logging event to CSV: {e}")
-
