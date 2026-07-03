@@ -3,7 +3,10 @@ EXPLANATION_TEMPLATES={
     "Working":"Person is working on a laptop.",
     "Resting":"Person is stationary and appears to be resting.",
     "Hurrying":"Person is moving quickly with belongings.",
-    "Normal Activity":"Person is performing normal daily activity."
+    "Normal Activity":"Person is performing normal daily activity.",
+    "Trespassing":"Person has trespassed into a highly restricted zone.",
+    "Perimeter Breach":"Person has breached the perimeter line.",
+    "Loitering":"Person is loitering in a restricted zone for a prolonged period."
 }
 
 def get_explanation(situation):
