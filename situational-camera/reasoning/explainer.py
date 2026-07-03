@@ -75,6 +75,7 @@ Rules:
 - Describe what the person is doing.
 """
 
+
             response = model.generate_content(
                 [
                     prompt,
@@ -118,3 +119,52 @@ Rules:
     
     # Offline fallback when no API key
     return EXPLANATION_TEMPLATES.get(situation, "No explanation available.")
+
+    try:
+        response = model.generate_content(
+            [
+                prompt,
+                {
+                    "mime_type": "image/jpeg",
+                    "data": image_base64,
+                },
+            ]
+        )
+
+        return response.text
+
+    except Exception as e:
+        # Fallback: construct a concise, human-readable explanation when
+        # the Gemini model or the requested API method is unavailable
+        try:
+            labels = [d.get("label", "object") for d in detections] if detections else []
+            det_summary = ", ".join(labels) if labels else "no notable objects"
+
+            # Prefer short, natural sentences (<=2 sentences)
+            if labels and "person" in labels:
+                # Tailor message for person-centric scenes
+                action = "appears to be moving normally"
+                s_low = (situation or "").lower()
+                if "distract" in s_low:
+                    action = "appears distracted, possibly using a phone"
+                elif "hurr" in s_low:
+                    action = "is moving quickly and may be hurrying"
+                elif "rest" in s_low:
+                    action = "appears stationary and resting"
+                elif "work" in s_low:
+                    action = "appears engaged with a device or workstation"
+                elif "trespass" in s_low:
+                    action = "has entered a highly restricted zone without authorization"
+                elif "breach" in s_low:
+                    action = "has crossed the perimeter line"
+                elif "loiter" in s_low:
+                    action = "has been loitering inside a restricted zone for a prolonged period"
+
+                explanation_text = f"A person {action}. Objects: {det_summary}. Risk: {risk}."
+            else:
+                explanation_text = f"Detected: {det_summary}. Situation: {situation}. Risk: {risk}."
+
+            return f"(fallback) {explanation_text} -- Gemini Error: {e}"
+        except Exception:
+            return f"Gemini API Error: {e}"
+
