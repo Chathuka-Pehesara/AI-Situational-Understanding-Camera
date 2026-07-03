@@ -99,6 +99,12 @@ Rules:
                     action = "appears stationary and resting"
                 elif "work" in s_low:
                     action = "appears engaged with a device or workstation"
+                elif "trespass" in s_low:
+                    action = "has entered a highly restricted zone without authorization"
+                elif "breach" in s_low:
+                    action = "has crossed the perimeter line"
+                elif "loiter" in s_low:
+                    action = "has been loitering inside a restricted zone for a prolonged period"
 
                 explanation_text = f"A person {action}. Objects: {det_summary}. Risk: {risk}."
             else:
