@@ -3,7 +3,7 @@ import datetime
 import sys
 
 from detection.detector import detect_objects
-from detection.tracker import is_moving
+from detection.tracker import is_moving, track_and_analyze_zones
 
 from reasoning.rule_engine import evaluate_situation
 from reasoning.explainer import generate_explanation
@@ -11,6 +11,21 @@ from reasoning.scorer import compute_scores
 
 from custom_logging.event_logger import log_event
 from ui.opencv_view import render_overlay
+
+DEFAULT_ZONES = {
+    "Restricted Zone A": [
+        [30, 80],
+        [250, 80],
+        [220, 400],
+        [10, 400]
+    ],
+    "Perimeter Gate": [
+        [380, 120],
+        [600, 120],
+        [620, 450],
+        [400, 450]
+    ]
+}
 
 
 def main():
@@ -43,7 +58,10 @@ def main():
             # Object detection
             detections = detect_objects(frame)
 
-            # Movement detection
+            # Spatial tracking and restricted zone monitoring
+            detections = track_and_analyze_zones(detections, DEFAULT_ZONES, loitering_threshold=5.0)
+
+            # Movement detection based on unique track IDs
             movement_detected = False
 
             for detection in detections:
@@ -51,8 +69,9 @@ def main():
                 if (
                     detection.get("label") == "person"
                     and "bbox" in detection
+                    and "track_id" in detection
                 ):
-                    if is_moving(0, detection["bbox"]):
+                    if is_moving(detection["track_id"], detection["bbox"]):
                         movement_detected = True
                         break
 
@@ -109,7 +128,8 @@ def main():
                 frame,
                 detections,
                 situation,
-                risk
+                risk,
+                zones=DEFAULT_ZONES
             )
 
             if output_frame is not None:
