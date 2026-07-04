@@ -157,7 +157,13 @@ def evaluate_situation(detections, movement_detected, frame=None, confidence_thr
         labels = [item.get("label") for item in detections if isinstance(item, dict) and "label" in item]
         
         # High confidence for clear patterns
-        if "person" in labels and "phone" in labels and movement_detected:
+        if "knife" in labels:
+            confidence = 0.95  # Weapon detected is high priority and clear
+        elif "animal" in labels:
+            confidence = 0.8   # Animal detection is clear
+        elif "bicycle" in labels or "motorcycle" in labels:
+            confidence = 0.85  # Vehicle is clear
+        elif "person" in labels and "phone" in labels and movement_detected:
             confidence = 0.9  # Distracted walking is very clear
         elif "person" in labels and "laptop" in labels:
             confidence = 0.85  # Working is clear

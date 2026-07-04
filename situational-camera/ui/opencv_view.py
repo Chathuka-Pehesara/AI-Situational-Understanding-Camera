@@ -67,7 +67,11 @@ def render_overlay(frame, detections, situation, risk, zones=None):
         "phone": (0, 183, 255),     # Neon Orange/Yellow
         "laptop": (102, 255, 0),    # Neon Green
         "bag": (246, 130, 59),      # Neon Blue
-        "bottle": (168, 85, 247)    # Neon Purple
+        "bottle": (168, 85, 247),   # Neon Purple
+        "knife": (0, 0, 255),       # Crimson Red
+        "bicycle": (0, 165, 255),   # Safety Orange
+        "motorcycle": (0, 165, 255),# Safety Orange
+        "animal": (0, 255, 128)     # Mint Green
     }
     DEFAULT_COLOR = (255, 255, 255)
     
@@ -83,7 +87,13 @@ def render_overlay(frame, detections, situation, risk, zones=None):
                 
                 # Check for zone-specific styling
                 color = COLOR_MAP.get(label, DEFAULT_COLOR)
-                label_text = f"{label.upper()} {conf:.2f}"
+                
+                if label == "knife":
+                    label_text = f"WEAPON [KNIFE] {conf:.2f}"
+                elif label == "animal":
+                    label_text = f"ANIMAL DETECTED {conf:.2f}"
+                else:
+                    label_text = f"{label.upper()} {conf:.2f}"
                 
                 if label == "person":
                     zone_info = det.get("zone_info")
@@ -109,7 +119,7 @@ def render_overlay(frame, detections, situation, risk, zones=None):
                 
                 # Draw text
                 cv2.putText(out_frame, label_text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
-
+ 
     # 5. Draw HUD Overlay at the top left
     h, w, _ = out_frame.shape
     
@@ -123,8 +133,9 @@ def render_overlay(frame, detections, situation, risk, zones=None):
     # Apply overlay with transparency alpha = 0.75
     cv2.addWeighted(overlay_hud, 0.75, out_frame, 0.25, 0, out_frame)
     
-    # Draw HUD border (Neon Cyan)
-    cv2.rectangle(out_frame, (10, 10), (10 + hud_w, 10 + hud_h), (255, 240, 0), 1)
+    # Draw HUD border (Red if weapon detected, otherwise Neon Cyan)
+    hud_border_color = (0, 0, 255) if situation == "Weapon Detected" else (255, 240, 0)
+    cv2.rectangle(out_frame, (10, 10), (10 + hud_w, 10 + hud_h), hud_border_color, 2 if situation == "Weapon Detected" else 1)
     
     # Risk color mapping
     risk_colors = {

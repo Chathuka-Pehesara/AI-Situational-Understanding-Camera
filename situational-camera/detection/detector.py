@@ -8,11 +8,16 @@ _model = None
 # Mappings from COCO class names / indices to the shared data-contract labels
 CLASS_MAPPING = {
     0: "person",
+    1: "bicycle",
     2: "car",
+    3: "motorcycle",
+    15: "animal",    # cat
+    16: "animal",    # dog
     24: "bag",       # backpack
     26: "bag",       # handbag
     28: "bag",       # suitcase
     39: "bottle",
+    43: "knife",     # knife / weapon
     63: "laptop",
     67: "phone"      # cell phone
 }

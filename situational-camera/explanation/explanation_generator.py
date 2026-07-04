@@ -27,7 +27,10 @@ EXPLANATION_TEMPLATES = {
     "Normal Activity": "Person is performing normal daily activity.",
     "Trespassing": "Person has trespassed into a highly restricted zone.",
     "Perimeter Breach": "Person has breached the perimeter line.",
-    "Loitering": "Person is loitering in a restricted zone for a prolonged period."
+    "Loitering": "Person is loitering in a restricted zone for a prolonged period.",
+    "Weapon Detected": "Critical Alert: A person carrying a weapon (knife) has been detected.",
+    "Vehicle Loitering": "A vehicle (bicycle/motorcycle) has been detected parked or moving in the area.",
+    "Animal Intrusion": "An animal (dog/cat) has breached the perimeter of the monitored area."
 }
 
 
