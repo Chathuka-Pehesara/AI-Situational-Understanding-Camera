@@ -41,6 +41,15 @@ def calculate_scores(situation, risk, detections=None):
             safety_score -= 2  # High risk -5 + situation -2 = 3 safety
         else:
             safety_score -= 3  # Medium risk -3 + situation -3 = 4 safety
+    elif situation == "Weapon Detected":
+        focus_score = 0      # Critical distraction/chaos
+        safety_score = 0     # Immediate lethal risk
+    elif situation == "Vehicle Loitering":
+        focus_score -= 15
+        safety_score -= 2
+    elif situation == "Animal Intrusion":
+        focus_score -= 10
+        safety_score -= 2
 
     # Object-specific modifiers
     if detections and isinstance(detections, list):
@@ -51,6 +60,10 @@ def calculate_scores(situation, risk, detections=None):
 
         if "car" in labels:
             safety_score -= 2
+
+        if "knife" in labels:
+            focus_score -= 30
+            safety_score -= 4
 
     # Clamp scores to their defined boundaries
     focus_score = max(0, min(100, focus_score))

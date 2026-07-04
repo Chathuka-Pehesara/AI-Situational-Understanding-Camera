@@ -35,6 +35,18 @@ def detect_situation(detections, movement_detected):
     if is_perimeter_breach:
         return {"situation": "Perimeter Breach", "risk": "Medium"}
 
+    # Weapon Detected (highest priority threat after zones)
+    if "knife" in labels:
+        return {"situation": "Weapon Detected", "risk": "High"}
+
+    # Animal Intrusion (low/medium risk stray animal check)
+    if "animal" in labels:
+        return {"situation": "Animal Intrusion", "risk": "Medium" if is_moving else "Low"}
+
+    # Vehicle Loitering (medium risk vehicle check)
+    if "bicycle" in labels or "motorcycle" in labels:
+        return {"situation": "Vehicle Loitering", "risk": "Medium"}
+
     # 2. Distracted Walking: person + phone while moving
     if (
         "person" in labels

@@ -156,9 +156,9 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
         t_id = det["track_id"]
         bbox = det["bbox"]
         
-        # Ground contact point (feet) is the bottom-center of the bbox
+        # Bounding box center point (modified to center to allow testing on laptop webcams)
         feet_x = int((bbox[0] + bbox[2]) / 2.0)
-        feet_y = int(bbox[3])
+        feet_y = int((bbox[1] + bbox[3]) / 2.0)
         pt = (feet_x, feet_y)
         
         inside_zone = None

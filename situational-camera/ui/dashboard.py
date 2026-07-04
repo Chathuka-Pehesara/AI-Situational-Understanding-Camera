@@ -64,8 +64,28 @@ SIM_PRESETS = {
     "Loitering": {
         "detections": [{"label": "person", "bbox": [50, 150, 150, 380], "confidence": 0.91}],
         "movement": False
+    },
+    "Weapon Detected": {
+        "detections": [
+            {"label": "person", "bbox": [220, 100, 380, 450], "confidence": 0.96},
+            {"label": "knife", "bbox": [290, 250, 340, 310], "confidence": 0.88}
+        ],
+        "movement": True
+    },
+    "Animal Intrusion": {
+        "detections": [
+            {"label": "animal", "bbox": [150, 220, 320, 340], "confidence": 0.91}
+        ],
+        "movement": True
+    },
+    "Vehicle Loitering": {
+        "detections": [
+            {"label": "motorcycle", "bbox": [400, 200, 580, 400], "confidence": 0.89}
+        ],
+        "movement": False
     }
 }
+
 
 st.set_page_config(
     page_title="AI Situational Understanding Camera",
@@ -611,7 +631,65 @@ css = """
     border: 1px dashed rgba(255,255,255,0.06);
     border-radius: 12px;
 }
+
+/* Weapon detection specific blinking animations */
+@keyframes weapon-blink {
+    0% { border-color: #ff0055; box-shadow: 0 0 5px rgba(255, 0, 85, 0.4); }
+    100% { border-color: #ff5588; box-shadow: 0 0 20px rgba(255, 0, 85, 0.9); }
+}
+
+.weapon-alert {
+    background: rgba(255, 0, 85, 0.25) !important;
+    border: 2px solid #ff0055 !important;
+    box-shadow: 0 0 25px rgba(255, 0, 85, 0.7) !important;
+    animation: weapon-alert-pulse 0.8s infinite alternate !important;
+    font-size: 0.85rem !important;
+    padding: 0.5rem 1rem !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+@keyframes weapon-alert-pulse {
+    0% { transform: translate(-50%, 0) scale(0.95); opacity: 0.85; }
+    100% { transform: translate(-50%, 0) scale(1.05); opacity: 1; }
+}
+
+/* Floating animation for normal alerts */
+@keyframes alert-float {
+    0% { transform: translate(-50%, 0) translateY(0px); }
+    50% { transform: translate(-50%, 0) translateY(-5px); }
+    100% { transform: translate(-50%, 0) translateY(0px); }
+}
+
+/* Card hover glow and smooth zoom */
+.metric-card {
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+}
+.metric-card:hover {
+    transform: translateY(-5px) scale(1.02) !important;
+    box-shadow: 0 20px 40px var(--shadow-color, rgba(0, 240, 255, 0.15)) !important;
+    border-color: var(--accent-color, rgba(0, 240, 255, 0.4)) !important;
+}
+
+/* Glassmorphism panel additions */
+.camera-card, .table-container, .explanation-block, .gemini-insights-panel {
+    background: rgba(10, 15, 30, 0.5) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.camera-card:hover, .table-container:hover {
+    border-color: rgba(0, 240, 255, 0.15) !important;
+}
+
+/* Pulse glow for situation cards */
+.status-dot {
+    box-shadow: 0 0 10px #00ff66;
+}
 </style>
+
 """
 
 # Helper function to convert Hex to RGB for glow effect shadows
@@ -650,7 +728,10 @@ def get_situation_details(situation):
         "Working": ("Working", "green", "💻"),
         "Resting": ("Resting", "cyan", "🛌"),
         "Hurrying": ("Hurrying", "yellow", "🏃‍♂️"),
-        "Normal Activity": ("Normal Activity", "blue", "🚶‍♂️")
+        "Normal Activity": ("Normal Activity", "blue", "🚶‍♂️"),
+        "Weapon Detected": ("Weapon Detected", "pink", "🔪"),
+        "Vehicle Loitering": ("Vehicle Loitering", "yellow", "🏍️"),
+        "Animal Intrusion": ("Animal Intrusion", "green", "🐈")
     }
     return details.get(situation, (situation, "cyan", "🔎"))
 
@@ -833,6 +914,30 @@ def render_camera_hud(situation, zones=None):
             <span class="bbox-label" style="background: #ffb700;">LOITERING [7.5s]</span>
         </div>
         <div class="hud-alert-overlay" style="background: rgba(255, 183, 0, 0.15); border-color: #ffb700; color: #ffb700;">LOITERING WARNING</div>
+        """
+    elif situation == "Weapon Detected":
+        bbox_html = """
+        <div class="camera-bounding-box person" style="top: 20%; left: 25%; width: 45%; height: 70%; border-color: #ff0055; animation: weapon-blink 0.5s infinite alternate;">
+            <span class="bbox-label" style="background: #ff0055;">PERSON [96%]</span>
+        </div>
+        <div class="camera-bounding-box knife" style="top: 50%; left: 45%; width: 10%; height: 15%; border-color: #ff0055; animation: weapon-blink 0.5s infinite alternate;">
+            <span class="bbox-label" style="background: #ff0055; color: white;">WEAPON [KNIFE] [88%]</span>
+        </div>
+        <div class="hud-alert-overlay weapon-alert">CRITICAL SAFETY THREAT: WEAPON DETECTED</div>
+        """
+    elif situation == "Animal Intrusion":
+        bbox_html = """
+        <div class="camera-bounding-box animal" style="top: 45%; left: 25%; width: 25%; height: 30%; border-color: #00ff66;">
+            <span class="bbox-label" style="background: #00ff66; color: #020308;">ANIMAL [91%]</span>
+        </div>
+        <div class="hud-alert-overlay" style="background: rgba(0, 255, 102, 0.15); border-color: #00ff66; color: #00ff66; animation: alert-float 2s infinite ease-in-out;">ANIMAL INTRUSION DETECTED</div>
+        """
+    elif situation == "Vehicle Loitering":
+        bbox_html = """
+        <div class="camera-bounding-box vehicle" style="top: 40%; left: 55%; width: 35%; height: 50%; border-color: #ffb700;">
+            <span class="bbox-label" style="background: #ffb700; color: #020308;">VEHICLE [89%]</span>
+        </div>
+        <div class="hud-alert-overlay" style="background: rgba(255, 183, 0, 0.15); border-color: #ffb700; color: #ffb700; animation: alert-float 2s infinite ease-in-out;">UNAUTHORIZED VEHICLE LOITERING</div>
         """
     else:
         # Waiting / Loading / Unknown
@@ -1022,7 +1127,7 @@ if mode == "🛠️ SIMULATOR":
     st.sidebar.subheader("Simulator Settings")
     sim_situation = st.sidebar.selectbox(
         "Active Situation",
-        ["Auto Cycle", "Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering"],
+        ["Auto Cycle", "Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering", "Weapon Detected", "Vehicle Loitering", "Animal Intrusion"],
         index=0
     )
     
@@ -1150,7 +1255,7 @@ while True:
             if sim_situation == "Auto Cycle":
                 if "sim_index" not in st.session_state:
                     st.session_state.sim_index = 0
-                situations_cycle = ["Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering"]
+                situations_cycle = ["Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering", "Weapon Detected", "Vehicle Loitering", "Animal Intrusion"]
                 active_sit = situations_cycle[st.session_state.sim_index]
                 st.session_state.sim_index = (st.session_state.sim_index + 1) % len(situations_cycle)
             else:
