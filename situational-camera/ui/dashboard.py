@@ -4,6 +4,7 @@ import os
 import time
 import sys
 import datetime
+import numpy as np
 
 # Ensure the situational-camera directory is in python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,6 +13,7 @@ from reasoning.rule_engine import evaluate_situation
 from reasoning.explainer import generate_explanation
 from reasoning.scorer import compute_scores
 from custom_logging.event_logger import log_event
+from detection.tracker import track_and_analyze_zones
 
 # HTML sanitization helper to prevent Streamlit from interpreting indented HTML as markdown code blocks
 def clean_html(html_str):
@@ -50,14 +52,46 @@ SIM_PRESETS = {
             {"label": "phone", "bbox": [290, 200, 340, 280], "confidence": 0.91}
         ],
         "movement": True
+    },
+    "Trespassing": {
+        "detections": [{"label": "person", "bbox": [50, 150, 150, 380], "confidence": 0.94}],
+        "movement": False
+    },
+    "Perimeter Breach": {
+        "detections": [{"label": "person", "bbox": [420, 200, 520, 420], "confidence": 0.93}],
+        "movement": True
+    },
+    "Loitering": {
+        "detections": [{"label": "person", "bbox": [50, 150, 150, 380], "confidence": 0.91}],
+        "movement": False
+    },
+    "Weapon Detected": {
+        "detections": [
+            {"label": "person", "bbox": [220, 100, 380, 450], "confidence": 0.96},
+            {"label": "knife", "bbox": [290, 250, 340, 310], "confidence": 0.88}
+        ],
+        "movement": True
+    },
+    "Animal Intrusion": {
+        "detections": [
+            {"label": "animal", "bbox": [150, 220, 320, 340], "confidence": 0.91}
+        ],
+        "movement": True
+    },
+    "Vehicle Loitering": {
+        "detections": [
+            {"label": "motorcycle", "bbox": [400, 200, 580, 400], "confidence": 0.89}
+        ],
+        "movement": False
     }
 }
+
 
 st.set_page_config(
     page_title="AI Situational Understanding Camera",
     page_icon="🎥",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # Custom Styling (Dark UI + Glassmorphism + Accent Neon Colors)
@@ -368,6 +402,56 @@ css = """
     line-height: 1.5;
 }
 
+/* Gemini Insights Panel */
+.gemini-insights-panel {
+    background: rgba(25, 20, 45, 0.6);
+    border-left: 4px solid #a855f7;
+    padding: 1.25rem;
+    border-radius: 0 16px 16px 0;
+    margin-top: 1.25rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.gemini-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a855f7;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.gemini-text {
+    font-size: 1.05rem;
+    color: #e2e8f0;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.gemini-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+}
+
+.gemini-verified {
+    background: rgba(0, 255, 102, 0.1);
+    color: #00ff66;
+    border: 1px solid rgba(0, 255, 102, 0.25);
+}
+
+.gemini-rule-based {
+    background: rgba(168, 85, 247, 0.1);
+    color: #a855f7;
+    border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
 /* Metric card styling */
 .metrics-container {
     display: grid;
@@ -547,7 +631,65 @@ css = """
     border: 1px dashed rgba(255,255,255,0.06);
     border-radius: 12px;
 }
+
+/* Weapon detection specific blinking animations */
+@keyframes weapon-blink {
+    0% { border-color: #ff0055; box-shadow: 0 0 5px rgba(255, 0, 85, 0.4); }
+    100% { border-color: #ff5588; box-shadow: 0 0 20px rgba(255, 0, 85, 0.9); }
+}
+
+.weapon-alert {
+    background: rgba(255, 0, 85, 0.25) !important;
+    border: 2px solid #ff0055 !important;
+    box-shadow: 0 0 25px rgba(255, 0, 85, 0.7) !important;
+    animation: weapon-alert-pulse 0.8s infinite alternate !important;
+    font-size: 0.85rem !important;
+    padding: 0.5rem 1rem !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+@keyframes weapon-alert-pulse {
+    0% { transform: translate(-50%, 0) scale(0.95); opacity: 0.85; }
+    100% { transform: translate(-50%, 0) scale(1.05); opacity: 1; }
+}
+
+/* Floating animation for normal alerts */
+@keyframes alert-float {
+    0% { transform: translate(-50%, 0) translateY(0px); }
+    50% { transform: translate(-50%, 0) translateY(-5px); }
+    100% { transform: translate(-50%, 0) translateY(0px); }
+}
+
+/* Card hover glow and smooth zoom */
+.metric-card {
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+}
+.metric-card:hover {
+    transform: translateY(-5px) scale(1.02) !important;
+    box-shadow: 0 20px 40px var(--shadow-color, rgba(0, 240, 255, 0.15)) !important;
+    border-color: var(--accent-color, rgba(0, 240, 255, 0.4)) !important;
+}
+
+/* Glassmorphism panel additions */
+.camera-card, .table-container, .explanation-block, .gemini-insights-panel {
+    background: rgba(10, 15, 30, 0.5) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.camera-card:hover, .table-container:hover {
+    border-color: rgba(0, 240, 255, 0.15) !important;
+}
+
+/* Pulse glow for situation cards */
+.status-dot {
+    box-shadow: 0 0 10px #00ff66;
+}
 </style>
+
 """
 
 # Helper function to convert Hex to RGB for glow effect shadows
@@ -586,7 +728,10 @@ def get_situation_details(situation):
         "Working": ("Working", "green", "💻"),
         "Resting": ("Resting", "cyan", "🛌"),
         "Hurrying": ("Hurrying", "yellow", "🏃‍♂️"),
-        "Normal Activity": ("Normal Activity", "blue", "🚶‍♂️")
+        "Normal Activity": ("Normal Activity", "blue", "🚶‍♂️"),
+        "Weapon Detected": ("Weapon Detected", "pink", "🔪"),
+        "Vehicle Loitering": ("Vehicle Loitering", "yellow", "🏍️"),
+        "Animal Intrusion": ("Animal Intrusion", "green", "🐈")
     }
     return details.get(situation, (situation, "cyan", "🔎"))
 
@@ -623,7 +768,7 @@ def get_safety_details(score):
         return (f"{val}/10", "pink", "🛡️")
 
 # Metrics grid HTML compiler
-def render_metrics_grid(situation, risk, focus, safety):
+def render_metrics_grid(situation, risk, focus, safety, gemini_confidence=None):
     sit_val, sit_theme, sit_icon = get_situation_details(situation)
     risk_val, risk_theme, risk_icon = get_risk_details(risk)
     focus_val, focus_theme, focus_icon = get_focus_details(focus)
@@ -643,9 +788,69 @@ def render_metrics_grid(situation, risk, focus, safety):
     </div>
     """
 
+# Coordinate parsing helper
+def parse_coords(coords_str):
+    try:
+        points = []
+        for pt in coords_str.split(";"):
+            if not pt.strip(): continue
+            x, y = map(int, pt.strip().split(","))
+            points.append([x, y])
+        return points
+    except Exception:
+        return []
+
+# SVG zones drawing helper
+def get_svg_zones_html(zones, active_alert_zone=None):
+    polygons_svg = ""
+    for zone_name, polygon in zones.items():
+        if not polygon or len(polygon) < 3:
+            continue
+        pts_str = " ".join(f"{x},{y}" for x, y in polygon)
+        
+        if zone_name == "Restricted Zone A":
+            stroke_color = "#ff0055"  # Neon Red/Pink
+            fill_color = "rgba(255, 0, 85, 0.12)"
+            if active_alert_zone == zone_name:
+                stroke_color = "#ff0055"
+                fill_color = "rgba(255, 0, 85, 0.25)"
+        elif zone_name == "Perimeter Gate":
+            stroke_color = "#ffb700"  # Neon Orange
+            fill_color = "rgba(255, 183, 0, 0.08)"
+            if active_alert_zone == zone_name:
+                stroke_color = "#ffb700"
+                fill_color = "rgba(255, 183, 0, 0.20)"
+        else:
+            stroke_color = "#00f0ff"
+            fill_color = "rgba(0, 240, 255, 0.08)"
+            
+        dash = "stroke-dasharray='4' " if active_alert_zone == zone_name else ""
+        polygons_svg += f'<polygon points="{pts_str}" style="fill:{fill_color};stroke:{stroke_color};stroke-width:2;{dash}" />'
+        
+        # Label text on the first node of the polygon
+        x, y = polygon[0]
+        polygons_svg += f'<text x="{x}" y="{y-8}" fill="{stroke_color}" font-family="Outfit" font-size="11" font-weight="600">{zone_name.upper()}</text>'
+        
+    return f"""
+    <svg viewBox="0 0 640 480" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none;">
+        {polygons_svg}
+    </svg>
+    """
+
 # Live camera feed graphics generator
-def render_camera_hud(situation):
+def render_camera_hud(situation, zones=None):
     bbox_html = ""
+    active_alert_zone = None
+    
+    if situation == "Trespassing" or situation == "Loitering":
+        active_alert_zone = "Restricted Zone A"
+    elif situation == "Perimeter Breach":
+        active_alert_zone = "Perimeter Gate"
+        
+    zones_svg = ""
+    if zones:
+        zones_svg = get_svg_zones_html(zones, active_alert_zone)
+
     if situation == "Distracted Walking":
         bbox_html = """
         <div class="camera-bounding-box person" style="top: 15%; left: 30%; width: 40%; height: 75%;">
@@ -689,6 +894,51 @@ def render_camera_hud(situation):
             <span class="bbox-label" style="background: #00f0ff;">PERSON [97%]</span>
         </div>
         """
+    elif situation == "Trespassing":
+        bbox_html = """
+        <div class="camera-bounding-box person" style="top: 25%; left: 10%; width: 28%; height: 68%; border-color: #ff0055;">
+            <span class="bbox-label" style="background: #ff0055;">INTRUDER - TRESPASSING</span>
+        </div>
+        <div class="hud-alert-overlay">CRITICAL BREACH: TRES-PASSING</div>
+        """
+    elif situation == "Perimeter Breach":
+        bbox_html = """
+        <div class="camera-bounding-box person" style="top: 30%; left: 68%; width: 24%; height: 65%; border-color: #ffb700;">
+            <span class="bbox-label" style="background: #ffb700;">INTRUDER - BREACH</span>
+        </div>
+        <div class="hud-alert-overlay" style="background: rgba(255, 183, 0, 0.15); border-color: #ffb700; color: #ffb700;">PERIMETER BREACH DETECTED</div>
+        """
+    elif situation == "Loitering":
+        bbox_html = """
+        <div class="camera-bounding-box person" style="top: 25%; left: 12%; width: 28%; height: 68%; border-color: #ffb700;">
+            <span class="bbox-label" style="background: #ffb700;">LOITERING [7.5s]</span>
+        </div>
+        <div class="hud-alert-overlay" style="background: rgba(255, 183, 0, 0.15); border-color: #ffb700; color: #ffb700;">LOITERING WARNING</div>
+        """
+    elif situation == "Weapon Detected":
+        bbox_html = """
+        <div class="camera-bounding-box person" style="top: 20%; left: 25%; width: 45%; height: 70%; border-color: #ff0055; animation: weapon-blink 0.5s infinite alternate;">
+            <span class="bbox-label" style="background: #ff0055;">PERSON [96%]</span>
+        </div>
+        <div class="camera-bounding-box knife" style="top: 50%; left: 45%; width: 10%; height: 15%; border-color: #ff0055; animation: weapon-blink 0.5s infinite alternate;">
+            <span class="bbox-label" style="background: #ff0055; color: white;">WEAPON [KNIFE] [88%]</span>
+        </div>
+        <div class="hud-alert-overlay weapon-alert">CRITICAL SAFETY THREAT: WEAPON DETECTED</div>
+        """
+    elif situation == "Animal Intrusion":
+        bbox_html = """
+        <div class="camera-bounding-box animal" style="top: 45%; left: 25%; width: 25%; height: 30%; border-color: #00ff66;">
+            <span class="bbox-label" style="background: #00ff66; color: #020308;">ANIMAL [91%]</span>
+        </div>
+        <div class="hud-alert-overlay" style="background: rgba(0, 255, 102, 0.15); border-color: #00ff66; color: #00ff66; animation: alert-float 2s infinite ease-in-out;">ANIMAL INTRUSION DETECTED</div>
+        """
+    elif situation == "Vehicle Loitering":
+        bbox_html = """
+        <div class="camera-bounding-box vehicle" style="top: 40%; left: 55%; width: 35%; height: 50%; border-color: #ffb700;">
+            <span class="bbox-label" style="background: #ffb700; color: #020308;">VEHICLE [89%]</span>
+        </div>
+        <div class="hud-alert-overlay" style="background: rgba(255, 183, 0, 0.15); border-color: #ffb700; color: #ffb700; animation: alert-float 2s infinite ease-in-out;">UNAUTHORIZED VEHICLE LOITERING</div>
+        """
     else:
         # Waiting / Loading / Unknown
         bbox_html = """
@@ -709,6 +959,7 @@ def render_camera_hud(situation):
             <span class="rec-pulse"></span>
             <span>{"REC" if situation != "Waiting..." else "STANDBY"}</span>
         </div>
+        {zones_svg}
         {bbox_html}
     </div>
     """
@@ -761,16 +1012,83 @@ def trigger_simulated_event(situation):
     if not preset:
         return None
     
+
+    # Create a dummy blank frame for the explainer and rule engine
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    
+    # Evaluate situation rules using project modules (with frame for Gemini verification)
+    eval_result = evaluate_situation(preset["detections"], preset["movement"], frame)
+
+    # 1. Parse active zones from session state
+    active_zones = {}
+    if st.session_state.get("enable_zone_a", True):
+        coords_a = st.session_state.get("coords_a_str", "30,80; 250,80; 220,400; 10,400")
+        active_zones["Restricted Zone A"] = parse_coords(coords_a)
+    if st.session_state.get("enable_zone_gate", True):
+        coords_gate = st.session_state.get("coords_gate_str", "380,120; 600,120; 620,450; 400,450")
+        active_zones["Perimeter Gate"] = parse_coords(coords_gate)
+        
+    loit_thresh = st.session_state.get("loitering_thresh", 5.0)
+
+    # 2. Run spatial tracking and zone collision logic on the simulated preset detections
+    sim_detections = track_and_analyze_zones(
+        preset["detections"],
+        active_zones,
+        loitering_threshold=loit_thresh
+    )
+
+    # 3. Handle specific overrides for simulator alerts
+    if situation == "Loitering":
+        for det in sim_detections:
+            if det.get("label") == "person":
+                det["zone_info"] = {
+                    "inside_zone": "Restricted Zone A",
+                    "loitering_duration": 7.5,
+                    "is_trespassing": True,
+                    "is_perimeter_breach": False,
+                    "is_loitering": True
+                }
+    elif situation == "Trespassing":
+        for det in sim_detections:
+            if det.get("label") == "person":
+                det["zone_info"] = {
+                    "inside_zone": "Restricted Zone A",
+                    "loitering_duration": 1.2,
+                    "is_trespassing": True,
+                    "is_perimeter_breach": False,
+                    "is_loitering": False
+                }
+    elif situation == "Perimeter Breach":
+        for det in sim_detections:
+            if det.get("label") == "person":
+                det["zone_info"] = {
+                    "inside_zone": "Perimeter Gate",
+                    "loitering_duration": 1.5,
+                    "is_trespassing": False,
+                    "is_perimeter_breach": True,
+                    "is_loitering": False
+                }
+    
     # Evaluate situation rules using project modules
-    eval_result = evaluate_situation(preset["detections"], preset["movement"])
+    eval_result = evaluate_situation(sim_detections, preset["movement"])
+
     sit_name = eval_result["situation"]
     risk_level = eval_result["risk"]
+    gemini_confidence = eval_result.get("confidence", None)
     
+
     # Generate explanation
-    explanation = generate_explanation(sit_name)
+    explanation = generate_explanation(frame, preset["detections"], sit_name, risk_level)
+    
+    # Compute focus/safety scores with Gemini confidence
+    scores = compute_scores(sit_name, risk_level, preset["detections"], gemini_confidence)
+
+    # Create a dummy blank frame for the explainer and generate explanation
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    explanation = generate_explanation(frame, sim_detections, sit_name, risk_level)
     
     # Compute focus/safety scores
-    scores = compute_scores(sit_name, risk_level, preset["detections"])
+    scores = compute_scores(sit_name, risk_level, sim_detections)
     
     # Create event
     event = {
@@ -779,7 +1097,9 @@ def trigger_simulated_event(situation):
         "risk": risk_level,
         "explanation": explanation,
         "focus_score": scores["focus_score"],
-        "safety_score": scores["safety_score"]
+        "safety_score": scores["safety_score"],
+        "gemini_confidence": scores.get("gemini_confidence", None),
+        "gemini_verified": eval_result.get("gemini_verified", False)
     }
     
     # Log to CSV
@@ -807,7 +1127,7 @@ if mode == "🛠️ SIMULATOR":
     st.sidebar.subheader("Simulator Settings")
     sim_situation = st.sidebar.selectbox(
         "Active Situation",
-        ["Auto Cycle", "Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking"],
+        ["Auto Cycle", "Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering", "Weapon Detected", "Vehicle Loitering", "Animal Intrusion"],
         index=0
     )
     
@@ -824,6 +1144,38 @@ else:
     st.sidebar.success("Listening for live camera feed entries...")
     st.sidebar.markdown(f"**Target Log File:** `{CSV_FILE}`")
 
+st.sidebar.markdown("---")
+st.sidebar.subheader("📐 Zone Configuration")
+enable_zone_a = st.sidebar.checkbox("Enable Restricted Zone A", value=True, key="enable_zone_a")
+coords_a_str = "30,80; 250,80; 220,400; 10,400"
+if enable_zone_a:
+    coords_a_str = st.sidebar.text_input(
+        "Zone A Vertices (x,y)",
+        value="30,80; 250,80; 220,400; 10,400",
+        help="Semicolon separated list of coordinates: x,y; x,y; ...",
+        key="coords_a_str"
+    )
+
+enable_zone_gate = st.sidebar.checkbox("Enable Perimeter Gate", value=True, key="enable_zone_gate")
+coords_gate_str = "380,120; 600,120; 620,450; 400,450"
+if enable_zone_gate:
+    coords_gate_str = st.sidebar.text_input(
+        "Perimeter Gate Vertices (x,y)",
+        value="380,120; 600,120; 620,450; 400,450",
+        help="Semicolon separated list of coordinates: x,y; x,y; ...",
+        key="coords_gate_str"
+    )
+
+loitering_thresh = st.sidebar.slider(
+    "Loitering Threshold (sec)",
+    min_value=1.0,
+    max_value=15.0,
+    value=5.0,
+    step=0.5,
+    key="loitering_thresh"
+)
+
+st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Clear Event Log"):
     if os.path.exists(CSV_FILE):
         try:
@@ -863,6 +1215,7 @@ with left_col:
     st.markdown('</div>', unsafe_allow_html=True)
     
     explanation_placeholder = st.empty()
+    gemini_insights_placeholder = st.empty()
 
 with right_col:
     st.markdown('<div class="section-header">📊 Real-Time Metrics</div>', unsafe_allow_html=True)
@@ -881,6 +1234,15 @@ while True:
         except Exception:
             pass # Skip temporary file locks
 
+    # Parse active zones for UI overlay
+    active_zones = {}
+    if st.session_state.get("enable_zone_a", True):
+        coords_a = st.session_state.get("coords_a_str", "30,80; 250,80; 220,400; 10,400")
+        active_zones["Restricted Zone A"] = parse_coords(coords_a)
+    if st.session_state.get("enable_zone_gate", True):
+        coords_gate = st.session_state.get("coords_gate_str", "380,120; 600,120; 620,450; 400,450")
+        active_zones["Perimeter Gate"] = parse_coords(coords_gate)
+
     # Trigger simulation events if active
     if mode == "🛠️ SIMULATOR":
         current_time = time.time()
@@ -893,7 +1255,7 @@ while True:
             if sim_situation == "Auto Cycle":
                 if "sim_index" not in st.session_state:
                     st.session_state.sim_index = 0
-                situations_cycle = ["Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking"]
+                situations_cycle = ["Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering", "Weapon Detected", "Vehicle Loitering", "Animal Intrusion"]
                 active_sit = situations_cycle[st.session_state.sim_index]
                 st.session_state.sim_index = (st.session_state.sim_index + 1) % len(situations_cycle)
             else:
@@ -917,9 +1279,11 @@ while True:
         current_focus = last_row.get("focus_score", 100)
         current_safety = last_row.get("safety_score", 10)
         current_explanation = last_row.get("explanation", "No explanation available.")
+        gemini_confidence = last_row.get("gemini_confidence", None)
+        gemini_verified = last_row.get("gemini_verified", False)
         
         # 1. Update Camera HUD view
-        camera_placeholder.markdown(clean_html(render_camera_hud(current_situation)), unsafe_allow_html=True)
+        camera_placeholder.markdown(clean_html(render_camera_hud(current_situation, active_zones)), unsafe_allow_html=True)
         
         # 2. Update Explanation Card
         explanation_html = f"""
@@ -930,14 +1294,46 @@ while True:
         """
         explanation_placeholder.markdown(clean_html(explanation_html), unsafe_allow_html=True)
         
-        # 3. Update Metrics Cards Grid
-        metrics_placeholder.markdown(clean_html(render_metrics_grid(current_situation, current_risk, current_focus, current_safety)), unsafe_allow_html=True)
+        # 3. Update Gemini Insights Panel
+        if gemini_confidence is not None and not pd.isna(gemini_confidence):
+            confidence_pct = f"{float(gemini_confidence) * 100:.0f}%"
+            badge_class = "gemini-verified" if gemini_verified else "gemini-rule-based"
+            badge_text = "Gemini Verified" if gemini_verified else "Rule-Based"
+            
+            gemini_html = f"""
+            <div class="gemini-insights-panel">
+                <div class="gemini-title">
+                    🔮 Gemini Insights
+                    <span class="gemini-badge {badge_class}">{badge_text}</span>
+                </div>
+                <div class="gemini-text">
+                    AI Confidence: {confidence_pct} | Situation confirmed by Gemini Vision analysis.
+                </div>
+            </div>
+            """
+            gemini_insights_placeholder.markdown(clean_html(gemini_html), unsafe_allow_html=True)
+        else:
+            gemini_html = f"""
+            <div class="gemini-insights-panel">
+                <div class="gemini-title">
+                    🔮 Gemini Insights
+                    <span class="gemini-badge gemini-rule-based">Rule-Based</span>
+                </div>
+                <div class="gemini-text">
+                    Using rule-based assessment. Gemini verification available when confidence is low.
+                </div>
+            </div>
+            """
+            gemini_insights_placeholder.markdown(clean_html(gemini_html), unsafe_allow_html=True)
         
-        # 4. Update Event Log table
+        # 4. Update Metrics Cards Grid
+        metrics_placeholder.markdown(clean_html(render_metrics_grid(current_situation, current_risk, current_focus, current_safety, gemini_confidence)), unsafe_allow_html=True)
+        
+        # 5. Update Event Log table
         table_placeholder.markdown(clean_html(render_events_table(df)), unsafe_allow_html=True)
     else:
         # Default Offline/Waiting State
-        camera_placeholder.markdown(clean_html(render_camera_hud("Waiting...")), unsafe_allow_html=True)
+        camera_placeholder.markdown(clean_html(render_camera_hud("Waiting...", active_zones)), unsafe_allow_html=True)
         
         default_explanation_html = """
         <div class="explanation-block" style="border-left-color: #475569;">
@@ -946,6 +1342,14 @@ while True:
         </div>
         """
         explanation_placeholder.markdown(clean_html(default_explanation_html), unsafe_allow_html=True)
+        
+        default_gemini_html = """
+        <div class="gemini-insights-panel" style="border-left-color: #475569;">
+            <div class="gemini-title">🔮 Gemini Insights</div>
+            <div class="gemini-text">System initializing. Gemini AI will provide insights when events are detected.</div>
+        </div>
+        """
+        gemini_insights_placeholder.markdown(clean_html(default_gemini_html), unsafe_allow_html=True)
         
         metrics_placeholder.markdown(clean_html(render_metrics_grid("Waiting...", "Unknown", 100, 10)), unsafe_allow_html=True)
         

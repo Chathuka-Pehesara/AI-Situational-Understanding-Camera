@@ -1,21 +1,4 @@
 def calculate_scores(situation, risk, detections=None):
-    """
-    Computes situational metrics, specifically a Focus Score and a Safety Score.
-
-    Parameters:
-        situation (str): The detected situation.
-        risk (str): The risk level (Low, Medium, High).
-        detections (list, optional): List of detected objects.
-
-    Returns:
-        dict: A dictionary containing:
-            {
-                "situation": str,
-                "risk": str,
-                "focus_score": int,
-                "safety_score": int
-            }
-    """
 
     focus_score = 100
     safety_score = 10
@@ -46,6 +29,27 @@ def calculate_scores(situation, risk, detections=None):
         # Resting is safe, offsetting the low risk deduction
         focus_score += 5
         safety_score += 1
+    elif situation == "Trespassing":
+        focus_score -= 10
+        safety_score -= 5  # High risk -5 + situation -5 = 0 safety
+    elif situation == "Perimeter Breach":
+        focus_score -= 10
+        safety_score -= 4  # Medium risk -3 + situation -4 = 3 safety
+    elif situation == "Loitering":
+        focus_score -= 20
+        if risk == "High":
+            safety_score -= 2  # High risk -5 + situation -2 = 3 safety
+        else:
+            safety_score -= 3  # Medium risk -3 + situation -3 = 4 safety
+    elif situation == "Weapon Detected":
+        focus_score = 0      # Critical distraction/chaos
+        safety_score = 0     # Immediate lethal risk
+    elif situation == "Vehicle Loitering":
+        focus_score -= 15
+        safety_score -= 2
+    elif situation == "Animal Intrusion":
+        focus_score -= 10
+        safety_score -= 2
 
     # Object-specific modifiers
     if detections and isinstance(detections, list):
@@ -56,6 +60,10 @@ def calculate_scores(situation, risk, detections=None):
 
         if "car" in labels:
             safety_score -= 2
+
+        if "knife" in labels:
+            focus_score -= 30
+            safety_score -= 4
 
     # Clamp scores to their defined boundaries
     focus_score = max(0, min(100, focus_score))
@@ -83,4 +91,4 @@ if __name__ == "__main__":
     print("Situation:", result["situation"])
     print("Risk:", result["risk"])
     print("Focus Score:", result["focus_score"])
-    print("Safety Score:", result["safety_score"])
+    print("Safety Score:", result["safety_score"])
