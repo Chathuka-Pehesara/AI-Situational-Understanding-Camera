@@ -140,3 +140,20 @@ Thumbs.db
 # Project Data Logs (ignore CSV outputs but keep .gitkeep)
 **/data/*.csv
 !**/data/.gitkeep
+
+# Video outputs & recordings
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.webm
+**/temp_videos/
+**/output/
+**/outputs/
+
+# PyTorch models & weights
+*.pt
+*.pth
+*.onnx
+*.weights
+

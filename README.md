@@ -19,7 +19,7 @@ graph TD
     C -->|Movement Detected?| D
     D -->|Situation & Risk Level| E[reasoning/explainer.py]
     D -->|Situation & Risk Level| F[reasoning/scorer.py]
-    E -->|Human-Readable Description| G[logging/event_logger.py]
+    E -->|Human-Readable Description| G[custom_logging/event_logger.py]
     F -->|Focus & Safety Metrics| G
     D -->|Overlays| H[ui/opencv_view.py]
     G -->|CSV Event Entry| I[(data/events_log.csv)]
@@ -33,27 +33,44 @@ graph TD
 
 ```text
 situational-camera/
-├── main.py               # Main pipeline runner showing execution & call order
-├── detection/            # Perception Layer
+├── main.py                # Main pipeline runner showing execution & call order
+├── intergration_test.py   # Integration test script for the pipeline components
+├── requirements.txt       # Project dependencies
+├── yolov8n.pt             # YOLOv8 Nano model weights
+├── detection/             # Perception Layer
 │   ├── __init__.py
-│   ├── detector.py       # YOLOv8 object detector wrapper
-│   └── tracker.py        # Movement tracker & bounding box center tracking
-├── reasoning/            # Intelligence Layer
+│   ├── detector.py        # YOLOv8 object detector wrapper
+│   └── tracker.py         # Movement tracker & bounding box center tracking
+├── reasoning/             # Intelligence Proxy Layer
 │   ├── __init__.py
-│   ├── rule_engine.py    # Multi-variable situation classification rules
-│   ├── explainer.py      # Natural language explanation generator
-│   └── scorer.py         # Real-time safety (0-10) and focus (0-100) scoring
-├── logging/              # Storage Layer
+│   ├── rule_engine.py     # Situation rules proxy (calls rules/rule_engine.py)
+│   ├── explainer.py       # Natural language explanation proxy (calls explanation/explanation_generator.py)
+│   └── scorer.py          # Real-time safety and focus scoring proxy (calls scoring/scoring.py)
+├── rules/                 # Intelligence Rules Layer
 │   ├── __init__.py
-│   └── event_logger.py   # State change event logger (saves to CSV)
-├── ui/                   # Interface Layer
+│   ├── rule_engine.py     # Multi-variable situation classification rules
+│   └── test_rules.py      # Test script for rules
+├── explanation/           # Intelligence Explanation Layer
 │   ├── __init__.py
-│   ├── opencv_view.py    # OpenCV HUD overlays (bounding boxes & telemetry)
-│   └── dashboard.py      # Live Streamlit dashboard app
-├── data/                 # Data Assets
-│   └── .gitkeep          # Stores events_log.csv
-├── requirements.txt      # Project dependencies
-└── README.md             # Subfolder documentation
+│   └── explanation_generator.py # Natural language explanation templates
+├── scoring/               # Intelligence Scoring Layer
+│   ├── __init__.py
+│   └── scoring.py         # Real-time safety (0-10) and focus (0-100) scoring logic
+├── custom_logging/        # Storage Layer
+│   ├── __init__.py
+│   └── event_logger.py    # State change event logger (saves to CSV)
+├── ui/                    # Interface Layer
+│   ├── __init__.py
+│   ├── opencv_view.py     # OpenCV HUD overlays (bounding boxes & telemetry)
+│   └── dashboard.py       # Live Streamlit dashboard app (monitoring & simulator)
+├── data/                  # Data Assets
+│   ├── .gitkeep           # git placeholder
+│   └── events_log.csv     # Automatically generated event log
+└── scratch/               # Development Scratch scripts
+    ├── test_detection.py
+    ├── test_logger.py
+    ├── test_rendering.py
+    └── test_tracker.py
 ```
 
 ---
@@ -63,7 +80,7 @@ situational-camera/
 Every module has been scaffolded to strict design contracts:
 
 ### 1. Object Detection Contract
-**Module**: `detector.py` | **Function**: `detect_objects(frame)`
+**Module**: `detection/detector.py` | **Function**: `detect_objects(frame)`
 * **Input**: OpenCV image frame (`numpy.ndarray`)
 * **Output**: `list` of dictionaries:
   ```python
@@ -71,45 +88,48 @@ Every module has been scaffolded to strict design contracts:
       {
           "label": "person", 
           "bbox": [x1, y1, x2, y2], 
-          "confidence": 0.92
+          "confidence": 0.92,
+          "track_id": 1            # Unique tracking ID (integer or None)
       },
       ...
   ]
   ```
 
 ### 2. Movement Tracking Contract
-**Module**: `tracker.py` | **Function**: `is_moving(person_id, current_bbox) -> bool`
+**Module**: `detection/tracker.py` | **Function**: `is_moving(person_id, current_bbox) -> bool`
 * **Input**: Unique person ID (`int`/`str`), current bounding box coordinates `[x1, y1, x2, y2]`.
 * **Output**: `bool` indicating if movement exceeds spatial thresholds.
 
 ### 3. Rule Reasoning Contract
-**Module**: `rule_engine.py` | **Function**: `evaluate_situation(detections, movement_detected) -> dict`
+**Module**: `reasoning/rule_engine.py` (delegates to `rules/rule_engine.py`) | **Function**: `evaluate_situation(detections, movement_detected) -> dict`
 * **Input**: List of current frame object detections, movement tracking boolean.
 * **Output**: Evaluation outcome:
   ```python
   {
-      "situation": "Walking while texting",
+      "situation": "Distracted Walking",
       "risk": "High"
   }
   ```
 
 ### 4. Natural Explanation Contract
-**Module**: `explainer.py` | **Function**: `generate_explanation(situation: str) -> str`
-* **Output**: Human-readable situation context (e.g., `"The individual is walking while distracted by a mobile device."`).
+**Module**: `reasoning/explainer.py` (delegates to `explanation/explanation_generator.py`) | **Function**: `generate_explanation(situation: str) -> str`
+* **Output**: Human-readable situation context (e.g., `"Person is walking while using a phone."`).
 
 ### 5. Metric Scoring Contract
-**Module**: `scorer.py` | **Function**: `compute_scores(situation: str, risk: str) -> dict`
+**Module**: `reasoning/scorer.py` (delegates to `scoring/scoring.py`) | **Function**: `compute_scores(situation: str, risk: str, detections: list) -> dict`
 * **Output**: Score levels:
   ```python
   {
-      "focus_score": 15,    # 0 to 100 range
-      "safety_score": 2     # 0 to 10 range
+      "situation": "Distracted Walking",
+      "risk": "High",
+      "focus_score": 40,    # 0 to 100 range
+      "safety_score": 3     # 0 to 10 range
   }
   ```
 
 ### 6. Event Logging Contract
-**Module**: `event_logger.py` | **Function**: `log_event(event: dict)`
-* Appends event data schemas to `data/events_log.csv`.
+**Module**: `custom_logging/event_logger.py` | **Function**: `log_event(event: dict)`
+* Appends event data schemas containing `timestamp`, `situation`, `risk`, `explanation`, `focus_score`, and `safety_score` to `data/events_log.csv`.
 
 ---
 
