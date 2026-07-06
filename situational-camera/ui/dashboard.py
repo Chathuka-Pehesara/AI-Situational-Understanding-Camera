@@ -10,10 +10,10 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from reasoning.rule_engine import evaluate_situation
-from reasoning.explainer import generate_explanation
+from reasoning.explainer import generate_explanation, EXPLANATION_TEMPLATES
 from reasoning.scorer import compute_scores
 from custom_logging.event_logger import log_event
-from detection.tracker import track_and_analyze_zones
+from detection.tracker import track_and_analyze_zones, reset_tracker
 
 # HTML sanitization helper to prevent Streamlit from interpreting indented HTML as markdown code blocks
 def clean_html(html_str):
@@ -800,6 +800,77 @@ def parse_coords(coords_str):
     except Exception:
         return []
 
+def run_video_scan(video_path, active_zones, loitering_thresh):
+    import cv2
+    from detection.detector import detect_objects
+    from detection.tracker import is_moving, reset_tracker
+    
+    reset_tracker()
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return []
+        
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    
+    # Sample every 0.5 seconds
+    scan_skip = max(1, int(fps * 0.5)) 
+    
+    incidents = []
+    frame_idx = 0
+    
+    progress_bar = st.sidebar.progress(0.0)
+    progress_text = st.sidebar.empty()
+    
+    while cap.isOpened():
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+        ret, frame = cap.read()
+        if not ret:
+            break
+            
+        detections = detect_objects(frame)
+        detections = track_and_analyze_zones(detections, active_zones, loitering_threshold=loit_thresh)
+        
+        movement_detected = False
+        for d in detections:
+            if d.get("label") == "person" and "bbox" in d and "track_id" in d:
+                if is_moving(d["track_id"], d["bbox"]):
+                    movement_detected = True
+                    break
+                    
+        situation_data = evaluate_situation(detections, movement_detected, frame=None)
+        sit = situation_data["situation"]
+        risk = situation_data["risk"]
+        
+        # Capture notable incidents
+        if sit not in ["Normal Activity", "Waiting..."] or risk != "Low":
+            timestamp_sec = frame_idx / fps
+            mins = int(timestamp_sec // 60)
+            secs = int(timestamp_sec % 60)
+            time_str = f"{mins:02d}:{secs:02d}"
+            
+            incidents.append({
+                "frame": frame_idx,
+                "time_str": time_str,
+                "situation": sit,
+                "risk": risk,
+                "objects": ", ".join(set(d.get("label") for d in detections if d.get("label")))
+            })
+            
+        frame_idx += scan_skip
+        
+        # Update UI progress
+        pct = min(1.0, frame_idx / total_frames)
+        progress_bar.progress(pct)
+        progress_text.text(f"Scanning: {int(pct*100)}%")
+        
+    cap.release()
+    reset_tracker()
+    progress_bar.empty()
+    progress_text.empty()
+    
+    return incidents
+
 # SVG zones drawing helper
 def get_svg_zones_html(zones, active_alert_zone=None):
     polygons_svg = ""
@@ -1110,41 +1181,30 @@ def trigger_simulated_event(situation):
 # Render styling first
 st.markdown(clean_html(css), unsafe_allow_html=True)
 
+# Initialize session states for video processing
+if "video_playing" not in st.session_state:
+    st.session_state.video_playing = False
+if "video_frame_index" not in st.session_state:
+    st.session_state.video_frame_index = 0
+if "temp_video_path" not in st.session_state:
+    st.session_state.temp_video_path = None
+if "current_processed_frame" not in st.session_state:
+    st.session_state.current_processed_frame = None
+if "video_incidents" not in st.session_state:
+    st.session_state.video_incidents = []
+if "video_metrics_history" not in st.session_state:
+    st.session_state.video_metrics_history = pd.DataFrame(columns=["Frame", "Safety Score", "Focus Score"])
+if "video_scanning" not in st.session_state:
+    st.session_state.video_scanning = False
+if "gemini_manual_insight" not in st.session_state:
+    st.session_state.gemini_manual_insight = None
+if "gemini_manual_loading" not in st.session_state:
+    st.session_state.gemini_manual_loading = False
+
 # SIDEBAR CONTROL PANEL
 st.sidebar.title("⚙️ System Control")
 st.sidebar.markdown("---")
 
-mode = st.sidebar.radio(
-    "Monitoring Mode",
-    ["🔴 LIVE MONITORING", "🛠️ SIMULATOR"],
-    index=0,
-    help="🔴 LIVE MONITORING reads from the physical pipeline CSV log. 🛠️ SIMULATOR auto-generates test scenarios to verify scoring & reasoning logic."
-)
-
-st.sidebar.markdown("---")
-
-if mode == "🛠️ SIMULATOR":
-    st.sidebar.subheader("Simulator Settings")
-    sim_situation = st.sidebar.selectbox(
-        "Active Situation",
-        ["Auto Cycle", "Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering", "Weapon Detected", "Vehicle Loitering", "Animal Intrusion"],
-        index=0
-    )
-    
-    sim_interval = st.sidebar.slider(
-        "Simulation Interval (sec)",
-        min_value=2,
-        max_value=10,
-        value=3,
-        step=1
-    )
-    st.sidebar.info("The simulator will log events using the actual pipeline files (rules engine, scoring, and logger modules)!")
-else:
-    st.sidebar.subheader("Live Status")
-    st.sidebar.success("Listening for live camera feed entries...")
-    st.sidebar.markdown(f"**Target Log File:** `{CSV_FILE}`")
-
-st.sidebar.markdown("---")
 st.sidebar.subheader("📐 Zone Configuration")
 enable_zone_a = st.sidebar.checkbox("Enable Restricted Zone A", value=True, key="enable_zone_a")
 coords_a_str = "30,80; 250,80; 220,400; 10,400"
@@ -1174,6 +1234,156 @@ loitering_thresh = st.sidebar.slider(
     step=0.5,
     key="loitering_thresh"
 )
+
+active_zones = {}
+if enable_zone_a:
+    active_zones["Restricted Zone A"] = parse_coords(coords_a_str)
+if enable_zone_gate:
+    active_zones["Perimeter Gate"] = parse_coords(coords_gate_str)
+
+st.sidebar.markdown("---")
+
+mode = st.sidebar.radio(
+    "Monitoring Mode",
+    ["🔴 LIVE MONITORING", "🛠️ SIMULATOR", "📤 UPLOAD VIDEO"],
+    index=0,
+    help="🔴 LIVE MONITORING reads from the physical pipeline CSV log. 🛠️ SIMULATOR auto-generates test scenarios. 📤 UPLOAD VIDEO processes an uploaded video frame-by-frame."
+)
+
+if "current_mode" not in st.session_state:
+    st.session_state.current_mode = mode
+elif st.session_state.current_mode != mode:
+    st.session_state.current_mode = mode
+    st.session_state.video_playing = False
+    st.session_state.video_frame_index = 0
+    reset_tracker()
+    st.session_state.current_processed_frame = None
+    st.session_state.video_incidents = []
+    st.session_state.video_metrics_history = pd.DataFrame(columns=["Frame", "Safety Score", "Focus Score"])
+    st.session_state.video_scanning = False
+    st.session_state.gemini_manual_insight = None
+    st.session_state.gemini_manual_loading = False
+
+st.sidebar.markdown("---")
+
+# Default playback config fallbacks
+frame_skip = 5
+enable_gemini_vision = False
+
+if mode == "🛠️ SIMULATOR":
+    st.sidebar.subheader("Simulator Settings")
+    sim_situation = st.sidebar.selectbox(
+        "Active Situation",
+        ["Auto Cycle", "Normal Activity", "Resting", "Working", "Hurrying", "Distracted Walking", "Trespassing", "Perimeter Breach", "Loitering", "Weapon Detected", "Vehicle Loitering", "Animal Intrusion"],
+        index=0
+    )
+    
+    sim_interval = st.sidebar.slider(
+        "Simulation Interval (sec)",
+        min_value=2,
+        max_value=10,
+        value=3,
+        step=1
+    )
+    st.sidebar.info("The simulator will log events using the actual pipeline files (rules engine, scoring, and logger modules)!")
+elif mode == "📤 UPLOAD VIDEO":
+    st.sidebar.subheader("Video Upload & Playback")
+    uploaded_file = st.sidebar.file_uploader(
+        "Select a surveillance video", 
+        type=["mp4", "avi", "mov", "mkv"], 
+        help="Upload a video to analyze situations and detect activities."
+    )
+    
+    # Store video in session state
+    if uploaded_file is not None:
+        temp_dir = "scratch/temp_videos"
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, uploaded_file.name)
+        
+        if "temp_video_path" not in st.session_state or st.session_state.temp_video_path != temp_path:
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            st.session_state.temp_video_path = temp_path
+            st.session_state.video_frame_index = 0
+            st.session_state.video_playing = False
+            reset_tracker()
+            st.session_state.current_processed_frame = None
+            st.session_state.video_incidents = []
+            st.session_state.video_metrics_history = pd.DataFrame(columns=["Frame", "Safety Score", "Focus Score"])
+            st.session_state.gemini_manual_insight = None
+            st.session_state.gemini_manual_loading = False
+            
+        st.sidebar.success(f"Uploaded: {uploaded_file.name}")
+        
+        # 1. Scanning control
+        if not st.session_state.video_incidents:
+            if st.sidebar.button("🔍 Scan Video for Key Incidents", help="Perform a rapid background scan to populate the timeline."):
+                st.session_state.video_incidents = run_video_scan(st.session_state.temp_video_path, active_zones, loitering_thresh)
+                st.rerun()
+        else:
+            st.sidebar.info(f"Scan complete: {len(st.session_state.video_incidents)} incidents found.")
+            if st.sidebar.button("🔄 Rescan Video"):
+                st.session_state.video_incidents = []
+                st.rerun()
+                
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("Playback Controls")
+        
+        # Playback Controls
+        col1, col2, col3 = st.sidebar.columns(3)
+        with col1:
+            if st.button("▶️ Play"):
+                st.session_state.video_playing = True
+                st.rerun()
+        with col2:
+            if st.button("⏸️ Pause"):
+                st.session_state.video_playing = False
+                st.rerun()
+        with col3:
+            if st.button("⏹️ Reset"):
+                st.session_state.video_playing = False
+                st.session_state.video_frame_index = 0
+                reset_tracker()
+                st.session_state.current_processed_frame = None
+                st.session_state.video_metrics_history = pd.DataFrame(columns=["Frame", "Safety Score", "Focus Score"])
+                st.session_state.gemini_manual_insight = None
+                st.session_state.gemini_manual_loading = False
+                st.rerun()
+                
+        # Playback configuration
+        playback_speed = st.sidebar.selectbox(
+            "Playback Speed", 
+            [0.5, 1.0, 1.5, 2.0], 
+            index=1,
+            help="Adjust the rendering and processing delay."
+        )
+        frame_skip = st.sidebar.slider(
+            "Frame Skip (Speedup)", 
+            min_value=1, 
+            max_value=30, 
+            value=5, 
+            step=1, 
+            help="Process every N-th frame to optimize speed and API costs."
+        )
+        enable_gemini_vision = st.sidebar.checkbox(
+            "Enable Gemini Vision (AI)", 
+            value=False, 
+            help="Enable Gemini model for advanced verification and explanations (warning: uses API credits)."
+        )
+    else:
+        st.session_state.temp_video_path = None
+        st.session_state.video_playing = False
+        st.session_state.current_processed_frame = None
+        st.session_state.video_incidents = []
+        st.session_state.video_metrics_history = pd.DataFrame(columns=["Frame", "Safety Score", "Focus Score"])
+        st.session_state.gemini_manual_insight = None
+        st.session_state.gemini_manual_loading = False
+else:
+    st.sidebar.subheader("Live Status")
+    st.sidebar.success("Listening for live camera feed entries...")
+    st.sidebar.markdown(f"**Target Log File:** `{CSV_FILE}`")
+
+st.sidebar.markdown("---")
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Clear Event Log"):
@@ -1216,14 +1426,105 @@ with left_col:
     
     explanation_placeholder = st.empty()
     gemini_insights_placeholder = st.empty()
+    gemini_btn_placeholder = st.empty()
+    timeline_placeholder = st.empty()
 
 with right_col:
     st.markdown('<div class="section-header">📊 Real-Time Metrics</div>', unsafe_allow_html=True)
     metrics_placeholder = st.empty()
+    chart_placeholder = st.empty()
 
 st.markdown('<div class="section-header" style="margin-top: 2rem;">📋 Recent System Events</div>', unsafe_allow_html=True)
-table_placeholder = st.empty()
+# Render static timeline jumper outside the loop to avoid StreamlitDuplicateElementId
+if mode == "📤 UPLOAD VIDEO" and st.session_state.video_incidents:
+    inc_options = [f"Jump to {inc['time_str']} - {inc['situation']} ({inc['risk']} Risk)" for inc in st.session_state.video_incidents]
+    selected_inc_str = timeline_placeholder.selectbox(
+        "📍 Jump to Incident Moment:",
+        ["-- Select Flagged Moment --"] + inc_options,
+        key="incident_jumper"
+    )
+    
+    if selected_inc_str != "-- Select Flagged Moment --":
+        if "last_jumped_incident" not in st.session_state or st.session_state.last_jumped_incident != selected_inc_str:
+            st.session_state.last_jumped_incident = selected_inc_str
+            sel_idx = inc_options.index(selected_inc_str)
+            st.session_state.video_frame_index = st.session_state.video_incidents[sel_idx]["frame"]
+            st.session_state.video_playing = False
+            st.session_state.gemini_manual_insight = None  # Clear old manual insight
+            
+            # Fetch and render single frame
+            import cv2
+            cap = cv2.VideoCapture(st.session_state.temp_video_path)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.video_frame_index)
+            ret, frame = cap.read()
+            cap.release()
+            if ret:
+                from detection.detector import detect_objects
+                detections = detect_objects(frame)
+                detections = track_and_analyze_zones(detections, active_zones, loitering_threshold=loitering_thresh)
+                
+                movement_detected = False
+                for d in detections:
+                    if d.get("label") == "person" and "bbox" in d and "track_id" in d:
+                        from detection.tracker import is_moving
+                        if is_moving(d["track_id"], d["bbox"]):
+                            movement_detected = True
+                            break
+                sit_data = evaluate_situation(detections, movement_detected, frame=None)
+                from ui.opencv_view import render_overlay
+                output_frame = render_overlay(frame, detections, sit_data["situation"], sit_data["risk"], zones=active_zones)
+                st.session_state.current_processed_frame = cv2.cvtColor(output_frame, cv2.COLOR_BGR2RGB)
+            st.rerun()
 
+# Render static on-demand Gemini Vision request button outside the loop
+if mode == "📤 UPLOAD VIDEO" and st.session_state.temp_video_path and not st.session_state.video_playing and st.session_state.current_processed_frame is not None:
+    if gemini_btn_placeholder.button("🔮 Request On-Demand Gemini Vision Analysis", help="Audit the current paused frame using the Gemini Vision model to confirm the situation."):
+        import cv2
+        from detection.detector import detect_objects
+        cap = cv2.VideoCapture(st.session_state.temp_video_path)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.video_frame_index)
+        ret, frame = cap.read()
+        cap.release()
+        if ret:
+            with st.spinner("Analyzing frame with Gemini..."):
+                detections = detect_objects(frame)
+                detections = track_and_analyze_zones(detections, active_zones, loitering_threshold=loitering_thresh)
+                movement_detected = False
+                for d in detections:
+                    if d.get("label") == "person" and "bbox" in d and "track_id" in d:
+                        from detection.tracker import is_moving
+                        if is_moving(d["track_id"], d["bbox"]):
+                            movement_detected = True
+                            break
+                situation_data = evaluate_situation(detections, movement_detected, frame)
+                explanation = generate_explanation(frame, detections, situation_data["situation"], situation_data["risk"])
+                
+                st.session_state.gemini_manual_insight = {
+                    "situation": situation_data["situation"],
+                    "risk": situation_data["risk"],
+                    "explanation": explanation,
+                    "confidence": situation_data.get("confidence", 0.5),
+                    "gemini_verified": situation_data.get("gemini_verified", False)
+                }
+                
+                # Log event
+                scores = compute_scores(situation_data["situation"], situation_data["risk"], detections, situation_data.get("confidence", 0.5))
+                event = {
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "situation": situation_data["situation"],
+                    "risk": situation_data["risk"],
+                    "explanation": explanation,
+                    "focus_score": scores["focus_score"],
+                    "safety_score": scores["safety_score"],
+                    "gemini_confidence": scores.get("gemini_confidence", None),
+                    "gemini_verified": situation_data.get("gemini_verified", False)
+                }
+                log_event(event)
+                
+                from ui.opencv_view import render_overlay
+                output_frame = render_overlay(frame, detections, situation_data["situation"], situation_data["risk"], zones=active_zones)
+                st.session_state.current_processed_frame = cv2.cvtColor(output_frame, cv2.COLOR_BGR2RGB)
+            st.rerun()
 
 # Infinite UI loop
 while True:
@@ -1270,6 +1571,192 @@ while True:
                 except Exception:
                     pass
 
+    # Process video if active
+    if mode == "📤 UPLOAD VIDEO" and st.session_state.get("temp_video_path") and st.session_state.get("video_playing"):
+        import cv2
+        from detection.detector import detect_objects
+        from detection.tracker import is_moving
+        
+        cap = cv2.VideoCapture(st.session_state.temp_video_path)
+        if cap.isOpened():
+            cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.video_frame_index)
+            
+            try:
+                # We will process frame-by-frame inside a nested loop as long as video is playing
+                while cap.isOpened() and st.session_state.get("video_playing", False):
+                    # Skip frames
+                    for _ in range(frame_skip - 1):
+                        cap.grab()
+                        st.session_state.video_frame_index += 1
+                        
+                    ret, frame = cap.read()
+                    if not ret:
+                        st.session_state.video_playing = False
+                        st.session_state.video_frame_index = 0
+                        break
+                        
+                    st.session_state.video_frame_index += 1
+                    
+                    # Clear manual insight on active playback
+                    st.session_state.gemini_manual_insight = None
+                    
+                    # 1. Run detection
+                    detections = detect_objects(frame)
+                    
+                    # 2. Track & Zone Analysis
+                    loit_thresh = st.session_state.get("loitering_thresh", 5.0)
+                    detections = track_and_analyze_zones(detections, active_zones, loitering_threshold=loit_thresh)
+                    
+                    # 3. Check movement
+                    movement_detected = False
+                    for detection in detections:
+                        if (
+                            detection.get("label") == "person"
+                            and "bbox" in detection
+                            and "track_id" in detection
+                        ):
+                            if is_moving(detection["track_id"], detection["bbox"]):
+                                movement_detected = True
+                                break
+                    
+                    # 4. Evaluate situation
+                    if enable_gemini_vision:
+                        situation_data = evaluate_situation(detections, movement_detected, frame)
+                    else:
+                        situation_data = evaluate_situation(detections, movement_detected, frame=None)
+                        
+                    situation = situation_data["situation"]
+                    risk = situation_data["risk"]
+                    gemini_confidence = situation_data.get("confidence", None)
+                    
+                    # 5. Generate explanation
+                    if enable_gemini_vision:
+                        explanation = generate_explanation(frame, detections, situation, risk)
+                    else:
+                        # Fallback local explanation
+                        labels = [d.get("label", "object") for d in detections] if detections else []
+                        det_summary = ", ".join(labels) if labels else "no notable objects"
+                        
+                        if "person" in labels:
+                            action = "appears to be moving normally"
+                            s_low = (situation or "").lower()
+                            if "distract" in s_low:
+                                action = "appears distracted, possibly using a phone"
+                            elif "hurr" in s_low:
+                                action = "is moving quickly and may be hurrying"
+                            elif "rest" in s_low:
+                                action = "appears stationary and resting"
+                            elif "work" in s_low:
+                                action = "appears engaged with a device or workstation"
+                            elif "trespass" in s_low:
+                                action = "has entered a highly restricted zone without authorization"
+                            elif "breach" in s_low:
+                                action = "has crossed the perimeter line"
+                            elif "loiter" in s_low:
+                                action = "has been loitering inside a restricted zone for a prolonged period"
+                            explanation = f"A person {action}. Objects: {det_summary}. Risk: {risk}."
+                        else:
+                            explanation = f"Detected: {det_summary}. Situation: {situation}. Risk: {risk}."
+                    
+                    # 6. Compute scores
+                    scores = compute_scores(situation, risk, detections, gemini_confidence)
+                    
+                    # Add to metrics history dataframe
+                    new_metric = pd.DataFrame([{
+                        "Frame": st.session_state.video_frame_index,
+                        "Safety Score": scores["safety_score"],
+                        "Focus Score": scores["focus_score"]
+                    }])
+                    st.session_state.video_metrics_history = pd.concat([st.session_state.video_metrics_history, new_metric]).tail(100)
+                    
+                    # 7. Log event to CSV
+                    event = {
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "situation": situation,
+                        "risk": risk,
+                        "explanation": explanation,
+                        "focus_score": scores["focus_score"],
+                        "safety_score": scores["safety_score"],
+                        "gemini_confidence": scores.get("gemini_confidence", None),
+                        "gemini_verified": situation_data.get("gemini_verified", False)
+                    }
+                    log_event(event)
+                    
+                    # 8. Render overlay on the frame
+                    from ui.opencv_view import render_overlay
+                    output_frame = render_overlay(frame, detections, situation, risk, zones=active_zones)
+                    
+                    # 9. Store in session state as RGB
+                    st.session_state.current_processed_frame = cv2.cvtColor(output_frame, cv2.COLOR_BGR2RGB)
+                    
+                    # 10. Update placeholders immediately!
+                    camera_placeholder.image(st.session_state.current_processed_frame, channels="RGB", use_container_width=True)
+                    
+                    explanation_html = f"""
+                    <div class="explanation-block">
+                        <div class="explanation-title">💡 Behavior Explanation</div>
+                        <div class="explanation-text">{explanation}</div>
+                    </div>
+                    """
+                    explanation_placeholder.markdown(clean_html(explanation_html), unsafe_allow_html=True)
+                    
+                    if gemini_confidence is not None:
+                        confidence_pct = f"{float(gemini_confidence) * 100:.0f}%"
+                        badge_class = "gemini-verified" if situation_data.get("gemini_verified", False) else "gemini-rule-based"
+                        badge_text = "Gemini Verified" if situation_data.get("gemini_verified", False) else "Rule-Based"
+                        
+                        gemini_html = f"""
+                        <div class="gemini-insights-panel">
+                          <div class="gemini-title">
+                            🔮 Gemini Insights
+                            <span class="gemini-badge {badge_class}">{badge_text}</span>
+                          </div>
+                          <div class="gemini-text">
+                            AI Confidence: {confidence_pct} | Situation confirmed by vision analysis.
+                          </div>
+                        </div>
+                        """
+                    else:
+                        gemini_html = f"""
+                        <div class="gemini-insights-panel">
+                          <div class="gemini-title">
+                            🔮 Gemini Insights
+                            <span class="gemini-badge gemini-rule-based">Rule-Based</span>
+                          </div>
+                          <div class="gemini-text">
+                            Using rule-based assessment. Enable Gemini Vision in the sidebar for AI analysis.
+                          </div>
+                        </div>
+                        """
+                    gemini_insights_placeholder.markdown(clean_html(gemini_html), unsafe_allow_html=True)
+                    
+                    metrics_placeholder.markdown(clean_html(render_metrics_grid(situation, risk, scores["focus_score"], scores["safety_score"], gemini_confidence)), unsafe_allow_html=True)
+                    
+                    # Real-time metrics history plotting
+                    if not st.session_state.video_metrics_history.empty:
+                        chart_df = st.session_state.video_metrics_history.set_index("Frame")
+                        chart_placeholder.line_chart(chart_df)
+                        
+                    if os.path.exists(CSV_FILE):
+                        try:
+                            df_new = pd.read_csv(CSV_FILE)
+                            table_placeholder.markdown(clean_html(render_events_table(df_new)), unsafe_allow_html=True)
+                        except Exception:
+                            pass
+                            
+                    # Throttling delay based on custom speed
+                    time.sleep(max(0.001, 0.05 / playback_speed))
+                    
+            finally:
+                cap.release()
+                
+        # Reload df to make sure external update checks work
+        if os.path.exists(CSV_FILE):
+            try:
+                df = pd.read_csv(CSV_FILE)
+            except Exception:
+                pass
+
     # Update UI Components
     if df is not None and not df.empty:
         last_row = df.iloc[-1]
@@ -1282,8 +1769,27 @@ while True:
         gemini_confidence = last_row.get("gemini_confidence", None)
         gemini_verified = last_row.get("gemini_verified", False)
         
+        # Override values if an on-demand Gemini audit was requested on the current paused frame
+        if mode == "📤 UPLOAD VIDEO" and st.session_state.gemini_manual_insight is not None:
+            insight = st.session_state.gemini_manual_insight
+            current_situation = insight["situation"]
+            current_risk = insight["risk"]
+            current_explanation = insight["explanation"]
+            gemini_confidence = insight["confidence"]
+            gemini_verified = insight["gemini_verified"]
+            # Recalculate scores for display
+            scores = compute_scores(current_situation, current_risk, None, gemini_confidence)
+            current_focus = scores["focus_score"]
+            current_safety = scores["safety_score"]
+            
         # 1. Update Camera HUD view
-        camera_placeholder.markdown(clean_html(render_camera_hud(current_situation, active_zones)), unsafe_allow_html=True)
+        if mode == "📤 UPLOAD VIDEO":
+            if "current_processed_frame" in st.session_state and st.session_state.current_processed_frame is not None:
+                camera_placeholder.image(st.session_state.current_processed_frame, channels="RGB", use_container_width=True)
+            else:
+                camera_placeholder.markdown(clean_html(render_camera_hud("Waiting...", active_zones)), unsafe_allow_html=True)
+        else:
+            camera_placeholder.markdown(clean_html(render_camera_hud(current_situation, active_zones)), unsafe_allow_html=True)
         
         # 2. Update Explanation Card
         explanation_html = f"""
@@ -1307,7 +1813,7 @@ while True:
                     <span class="gemini-badge {badge_class}">{badge_text}</span>
                 </div>
                 <div class="gemini-text">
-                    AI Confidence: {confidence_pct} | Situation confirmed by Gemini Vision analysis.
+                    AI Confidence: {confidence_pct} | Situation confirmed by vision analysis.
                 </div>
             </div>
             """
@@ -1320,7 +1826,7 @@ while True:
                     <span class="gemini-badge gemini-rule-based">Rule-Based</span>
                 </div>
                 <div class="gemini-text">
-                    Using rule-based assessment. Gemini verification available when confidence is low.
+                    Using rule-based assessment. Enable Gemini Vision or click "Request On-Demand Gemini Vision Analysis" for AI feedback.
                 </div>
             </div>
             """
@@ -1329,11 +1835,22 @@ while True:
         # 4. Update Metrics Cards Grid
         metrics_placeholder.markdown(clean_html(render_metrics_grid(current_situation, current_risk, current_focus, current_safety, gemini_confidence)), unsafe_allow_html=True)
         
+        # Render static line chart when paused in video mode
+        if mode == "📤 UPLOAD VIDEO" and not st.session_state.video_metrics_history.empty:
+            chart_df = st.session_state.video_metrics_history.set_index("Frame")
+            chart_placeholder.line_chart(chart_df)
+            
         # 5. Update Event Log table
         table_placeholder.markdown(clean_html(render_events_table(df)), unsafe_allow_html=True)
     else:
         # Default Offline/Waiting State
-        camera_placeholder.markdown(clean_html(render_camera_hud("Waiting...", active_zones)), unsafe_allow_html=True)
+        if mode == "📤 UPLOAD VIDEO":
+            if "current_processed_frame" in st.session_state and st.session_state.current_processed_frame is not None:
+                camera_placeholder.image(st.session_state.current_processed_frame, channels="RGB", use_container_width=True)
+            else:
+                camera_placeholder.markdown(clean_html(render_camera_hud("Waiting...", active_zones)), unsafe_allow_html=True)
+        else:
+            camera_placeholder.markdown(clean_html(render_camera_hud("Waiting...", active_zones)), unsafe_allow_html=True)
         
         default_explanation_html = """
         <div class="explanation-block" style="border-left-color: #475569;">
