@@ -1,4 +1,3 @@
-
 import os
 import base64
 import cv2
@@ -119,4 +118,4 @@ if __name__ == "__main__":
     ]
 
     for situation in situations:
-        print(f"{situation}: {get_explanation(situation)}")
+        print(f"{situation}: {get_explanation(situation)}")

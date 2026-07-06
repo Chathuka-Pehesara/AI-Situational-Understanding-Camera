@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-# Initialize YOLOv8 Nano model globally to avoid loading it on every frame
+# Initialize YOLOv8 model globally to avoid loading it on every frame
 _model = None
 
 # Mappings from COCO class names / indices to the shared data-contract labels
@@ -23,17 +23,15 @@ CLASS_MAPPING = {
 }
 
 TARGET_CLASSES = list(CLASS_MAPPING.keys())
-CONFIDENCE_THRESHOLD = 0.5
 
 def _get_model():
     global _model
     if _model is None:
-        # Load yolov8n.pt model (already present in the repository)
-        _model = YOLO("yolov8n.pt")
+        # Load yolov8s.pt model for higher accuracy (will download automatically if not present)
+        _model = YOLO("yolov8s.pt")
     return _model
 
 def enhance_low_light(frame):
-  
     if frame is None:
         return None
     # Convert BGR to LAB color space to separate lightness from color
@@ -50,7 +48,6 @@ def enhance_low_light(frame):
     return enhanced_bgr
 
 def detect_objects(frame):
-  
     if frame is None:
         return []
 
@@ -68,8 +65,8 @@ def detect_objects(frame):
             np.copyto(frame, enhanced)
 
     model = _get_model()
-    # Run prediction filtering for the target classes to optimize speed
-    results = model.predict(source=frame, classes=TARGET_CLASSES, conf=CONFIDENCE_THRESHOLD, verbose=False)
+    # Run prediction filtering for the target classes with tuned thresholds to optimize accuracy
+    results = model.predict(source=frame, classes=TARGET_CLASSES, conf=0.3, iou=0.45, verbose=False)
 
     detections = []
     if len(results) > 0:

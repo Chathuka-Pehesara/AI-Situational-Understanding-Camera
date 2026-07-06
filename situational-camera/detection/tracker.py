@@ -216,4 +216,3 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
 
     # Recombine all detections
     return person_dets + other_dets
-

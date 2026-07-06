@@ -152,5 +152,3 @@ def render_overlay(frame, detections, situation, risk, zones=None):
     cv2.putText(out_frame, risk.upper(), (70, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, r_color, 2, cv2.LINE_AA)
 
     return out_frame
-
-
