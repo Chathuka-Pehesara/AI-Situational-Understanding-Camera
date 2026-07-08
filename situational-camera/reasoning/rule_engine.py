@@ -72,7 +72,7 @@ Context:
 - Detected Objects: {detection_text}
 
 Analyze the scene and determine:
-1. What is the most accurate situation label? (Choose from: Distracted Walking, Working, Resting, Hurrying, Normal Activity)
+1. What is the most accurate situation label? (Choose from: Fall Detected, Unsafe Zone Breach, Distracted Walking, Working, Resting, Hurrying, Normal Activity)
 2. What is the appropriate risk level? (Low, Medium, High)
 3. How confident are you in this assessment? (0.0 to 1.0)
 
@@ -153,26 +153,31 @@ def evaluate_situation(detections, movement_detected, frame=None, confidence_thr
     # Higher confidence when clear patterns are detected
     confidence = 0.5  # Base confidence
     
+    if initial_situation == "Fall Detected":
+        confidence = 0.85
+    elif initial_situation == "Unsafe Zone Breach":
+        confidence = 0.95
+        
     if detections and isinstance(detections, list):
         labels = [item.get("label") for item in detections if isinstance(item, dict) and "label" in item]
         
         # High confidence for clear patterns
         if "knife" in labels:
-            confidence = 0.95  # Weapon detected is high priority and clear
+            confidence = max(confidence, 0.95)  # Weapon detected is high priority and clear
         elif "animal" in labels:
-            confidence = 0.8   # Animal detection is clear
+            confidence = max(confidence, 0.8)   # Animal detection is clear
         elif "bicycle" in labels or "motorcycle" in labels:
-            confidence = 0.85  # Vehicle is clear
+            confidence = max(confidence, 0.85)  # Vehicle is clear
         elif "person" in labels and "phone" in labels and movement_detected:
-            confidence = 0.9  # Distracted walking is very clear
+            confidence = max(confidence, 0.9)  # Distracted walking is very clear
         elif "person" in labels and "laptop" in labels:
-            confidence = 0.85  # Working is clear
+            confidence = max(confidence, 0.85)  # Working is clear
         elif "person" in labels and ("bag" in labels or "bottle" in labels) and movement_detected:
-            confidence = 0.8  # Hurrying is clear
+            confidence = max(confidence, 0.8)  # Hurrying is clear
         elif "person" in labels and not movement_detected:
-            confidence = 0.75  # Resting is clear
+            confidence = max(confidence, 0.75)  # Resting is clear
         elif "person" in labels:
-            confidence = 0.7  # Normal activity
+            confidence = max(confidence, 0.7)  # Normal activity
     
     # If confidence is below threshold and frame is available, use Gemini for verification
     if confidence < confidence_threshold and frame is not None:

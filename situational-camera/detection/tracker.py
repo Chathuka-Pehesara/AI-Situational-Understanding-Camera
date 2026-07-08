@@ -165,6 +165,7 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
         loitering_duration = 0.0
         is_trespassing = False
         is_perimeter_breach = False
+        is_unsafe_zone_breach = False
         is_loitering = False
         
         # Check all zones
@@ -193,6 +194,8 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
                     is_trespassing = True
                 elif zone_name == "Perimeter Gate":
                     is_perimeter_breach = True
+                elif "Unsafe" in zone_name or "unsafe" in zone_name.lower():
+                    is_unsafe_zone_breach = True
                     
                 if duration >= loitering_threshold:
                     is_loitering = True
@@ -207,6 +210,7 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
             "loitering_duration": round(loitering_duration, 1),
             "is_trespassing": is_trespassing,
             "is_perimeter_breach": is_perimeter_breach,
+            "is_unsafe_zone_breach": is_unsafe_zone_breach,
             "is_loitering": is_loitering
         }
         

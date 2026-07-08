@@ -23,7 +23,9 @@ EXPLANATION_TEMPLATES = {
     "Working": "Person is working on a laptop.",
     "Resting": "Person is stationary and appears to be resting.",
     "Hurrying": "Person is moving quickly with belongings.",
-    "Normal Activity": "Person is performing normal daily activity."
+    "Normal Activity": "Person is performing normal daily activity.",
+    "Fall Detected": "Person has likely fallen down.",
+    "Unsafe Zone Breach": "Person has entered an unsafe zone."
 }
 
 
@@ -113,6 +115,10 @@ Rules:
                         action = "has crossed the perimeter line"
                     elif "loiter" in s_low:
                         action = "has been loitering inside a restricted zone for a prolonged period"
+                    elif "fall" in s_low:
+                        action = "appears to have fallen down"
+                    elif "unsafe" in s_low:
+                        action = "has entered an unsafe zone"
 
                     explanation_text = f"A person {action}. Objects: {det_summary}. Risk: {risk}."
                 else:

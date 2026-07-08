@@ -1186,15 +1186,92 @@ if 'username' not in st.session_state:
 
 def login_page():
     st.markdown(clean_html(css), unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1, 1, 1])
+    
+    login_css = """
+    <style>
+    /* Full height background for login */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    }
+    [data-testid="stHeader"] {
+        display: none !important;
+    }
+    /* Style the form container */
+    [data-testid="stForm"] {
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 24px !important;
+        padding: 40px !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important;
+        margin-top: 15vh !important;
+        width: 100% !important;
+        max-width: 450px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    .login-title {
+        color: #00c9a7 !important;
+        text-align: center !important;
+        font-weight: 800 !important;
+        margin-bottom: 5px !important;
+        font-size: 2.8rem !important;
+        letter-spacing: -0.02em !important;
+    }
+    .login-subtitle {
+        color: #94a3b8 !important;
+        text-align: center !important;
+        margin-bottom: 30px !important;
+        font-size: 1.1rem !important;
+    }
+    [data-testid="stTextInput"] label {
+        color: #cbd5e1 !important;
+        font-weight: 500 !important;
+    }
+    [data-testid="stTextInput"] input {
+        background: rgba(0, 0, 0, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        padding: 14px 16px !important;
+        transition: all 0.3s ease !important;
+    }
+    [data-testid="stTextInput"] input:focus {
+        border-color: #00c9a7 !important;
+        box-shadow: 0 0 0 2px rgba(0, 201, 167, 0.3) !important;
+        background: rgba(0, 0, 0, 0.4) !important;
+    }
+    [data-testid="stForm"] button {
+        background: linear-gradient(135deg, #00c9a7 0%, #009688 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+        font-weight: 600 !important;
+        font-size: 1.1rem !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+        margin-top: 15px !important;
+    }
+    [data-testid="stForm"] button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(0, 201, 167, 0.4) !important;
+        color: white !important;
+    }
+    </style>
+    """
+    st.markdown(login_css, unsafe_allow_html=True)
+    
+    st.write("<br>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.markdown('<div class="auth-container"><div class="auth-box">', unsafe_allow_html=True)
-        st.markdown('<h1 style="color:#128292; font-weight:800; margin-bottom: 5px;">SituVision AI</h1>', unsafe_allow_html=True)
-        st.markdown('<p style="color:#64748b; margin-bottom: 30px;">Sign in to your account</p>', unsafe_allow_html=True)
-        
         with st.form("login_form"):
+            st.markdown('<h1 class="login-title">SituVision AI</h1>', unsafe_allow_html=True)
+            st.markdown('<p class="login-subtitle">Sign in to your account</p>', unsafe_allow_html=True)
+            
             username = st.text_input("Username", placeholder="admin or user")
-            password = st.text_input("Password", type="password", placeholder="password")
+            password = st.text_input("Password", type="password", placeholder="••••••••")
             submit = st.form_submit_button("Sign In", use_container_width=True)
             
             if submit:
@@ -1205,8 +1282,6 @@ def login_page():
                     st.rerun()
                 else:
                     st.error("Please enter both username and password.")
-                    
-        st.markdown('</div></div>', unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
     login_page()
@@ -1470,7 +1545,7 @@ if selection == "Dashboard":
                 st.rerun()
 
     # Core Logic Loop (only runs when Dashboard tab is open)
-    while True:
+    if True:
         df = None
         if os.path.exists(CSV_FILE):
             try:
@@ -1503,7 +1578,7 @@ if selection == "Dashboard":
             if cap.isOpened():
                 cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.video_frame_index)
                 try:
-                    while cap.isOpened() and st.session_state.get("video_playing", False):
+                    if cap.isOpened() and st.session_state.get("video_playing", False):
                         for _ in range(frame_skip - 1):
                             cap.grab()
                             st.session_state.video_frame_index += 1
@@ -1511,61 +1586,61 @@ if selection == "Dashboard":
                         if not ret:
                             st.session_state.video_playing = False
                             st.session_state.video_frame_index = 0
-                            break
-                        st.session_state.video_frame_index += 1
-                        st.session_state.gemini_manual_insight = None
-                        
-                        detections = detect_objects(frame)
-                        detections = track_and_analyze_zones(detections, active_zones, loitering_threshold=loitering_thresh)
-                        movement_detected = False
-                        for detection in detections:
-                            if detection.get("label") == "person" and "bbox" in detection and "track_id" in detection:
-                                if is_moving(detection["track_id"], detection["bbox"]):
-                                    movement_detected = True; break
-                                    
-                        situation_data = evaluate_situation(detections, movement_detected, frame if enable_gemini_vision else None)
-                        situation = situation_data["situation"]
-                        risk = situation_data["risk"]
-                        gemini_confidence = situation_data.get("confidence", None)
-                        
-                        if enable_gemini_vision:
-                            explanation = generate_explanation(frame, detections, situation, risk)
                         else:
-                            labels = [d.get("label", "object") for d in detections] if detections else []
-                            det_summary = ", ".join(labels) if labels else "no notable objects"
-                            explanation = f"Detected: {det_summary}. Situation: {situation}. Risk: {risk}."
-                        
-                        scores = compute_scores(situation, risk, detections, gemini_confidence)
-                        new_metric = pd.DataFrame([{"Frame": st.session_state.video_frame_index, "Safety Score": scores["safety_score"], "Focus Score": scores["focus_score"]}])
-                        st.session_state.video_metrics_history = pd.concat([st.session_state.video_metrics_history, new_metric]).tail(100)
-                        
-                        event = {
-                            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "situation": situation, "risk": risk, "explanation": explanation,
-                            "focus_score": scores["focus_score"], "safety_score": scores["safety_score"],
-                            "gemini_confidence": scores.get("gemini_confidence", None), "gemini_verified": situation_data.get("gemini_verified", False)
-                        }
-                        log_event(event)
-                        
-                        from ui.opencv_view import render_overlay
-                        output_frame = render_overlay(frame, detections, situation, risk, zones=active_zones)
-                        st.session_state.current_processed_frame = cv2.cvtColor(output_frame, cv2.COLOR_BGR2RGB)
-                        
-                        camera_placeholder.image(st.session_state.current_processed_frame, channels="RGB", use_container_width=True)
-                        explanation_placeholder.markdown(clean_html(f'<div class="explanation-block"><div class="explanation-title">Behavior Explanation</div><div class="explanation-text">{explanation}</div></div>'), unsafe_allow_html=True)
-                        metrics_placeholder.markdown(clean_html(render_metrics_grid(situation, risk, scores["focus_score"], scores["safety_score"], gemini_confidence)), unsafe_allow_html=True)
-                        
-                        if not st.session_state.video_metrics_history.empty:
-                            chart_df = st.session_state.video_metrics_history.set_index("Frame")
-                            chart_placeholder.line_chart(chart_df)
+                            st.session_state.video_frame_index += 1
+                            st.session_state.gemini_manual_insight = None
                             
-                        if os.path.exists(CSV_FILE):
-                            try:
-                                df_new = pd.read_csv(CSV_FILE)
-                                table_placeholder.markdown(clean_html(render_events_table(df_new)), unsafe_allow_html=True)
-                            except Exception: pass
+                            detections = detect_objects(frame)
+                            detections = track_and_analyze_zones(detections, active_zones, loitering_threshold=loitering_thresh)
+                            movement_detected = False
+                            for detection in detections:
+                                if detection.get("label") == "person" and "bbox" in detection and "track_id" in detection:
+                                    if is_moving(detection["track_id"], detection["bbox"]):
+                                        movement_detected = True; break
+                                        
+                            situation_data = evaluate_situation(detections, movement_detected, frame if enable_gemini_vision else None)
+                            situation = situation_data["situation"]
+                            risk = situation_data["risk"]
+                            gemini_confidence = situation_data.get("confidence", None)
                             
-                        time.sleep(max(0.001, 0.05 / playback_speed))
+                            if enable_gemini_vision:
+                                explanation = generate_explanation(frame, detections, situation, risk)
+                            else:
+                                labels = [d.get("label", "object") for d in detections] if detections else []
+                                det_summary = ", ".join(labels) if labels else "no notable objects"
+                                explanation = f"Detected: {det_summary}. Situation: {situation}. Risk: {risk}."
+                            
+                            scores = compute_scores(situation, risk, detections, gemini_confidence)
+                            new_metric = pd.DataFrame([{"Frame": st.session_state.video_frame_index, "Safety Score": scores["safety_score"], "Focus Score": scores["focus_score"]}])
+                            st.session_state.video_metrics_history = pd.concat([st.session_state.video_metrics_history, new_metric]).tail(100)
+                            
+                            event = {
+                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "situation": situation, "risk": risk, "explanation": explanation,
+                                "focus_score": scores["focus_score"], "safety_score": scores["safety_score"],
+                                "gemini_confidence": scores.get("gemini_confidence", None), "gemini_verified": situation_data.get("gemini_verified", False)
+                            }
+                            log_event(event)
+                            
+                            from ui.opencv_view import render_overlay
+                            output_frame = render_overlay(frame, detections, situation, risk, zones=active_zones)
+                            st.session_state.current_processed_frame = cv2.cvtColor(output_frame, cv2.COLOR_BGR2RGB)
+                            
+                            camera_placeholder.image(st.session_state.current_processed_frame, channels="RGB", use_container_width=True)
+                            explanation_placeholder.markdown(clean_html(f'<div class="explanation-block"><div class="explanation-title">Behavior Explanation</div><div class="explanation-text">{explanation}</div></div>'), unsafe_allow_html=True)
+                            metrics_placeholder.markdown(clean_html(render_metrics_grid(situation, risk, scores["focus_score"], scores["safety_score"], gemini_confidence)), unsafe_allow_html=True)
+                            
+                            if not st.session_state.video_metrics_history.empty:
+                                chart_df = st.session_state.video_metrics_history.set_index("Frame")
+                                chart_placeholder.line_chart(chart_df)
+                                
+                            if os.path.exists(CSV_FILE):
+                                try:
+                                    df_new = pd.read_csv(CSV_FILE)
+                                    table_placeholder.markdown(clean_html(render_events_table(df_new)), unsafe_allow_html=True)
+                                except Exception: pass
+                                
+                            time.sleep(max(0.001, 0.05 / playback_speed))
                 finally:
                     cap.release()
             if os.path.exists(CSV_FILE):
@@ -1613,7 +1688,7 @@ if selection == "Dashboard":
             table_placeholder.markdown("<div class='no-events'>Waiting for camera events...</div>", unsafe_allow_html=True)
 
         time.sleep(1)
-
+        st.rerun()
 elif selection == "Analytics":
     st.markdown('<div class="camera-card"><h3 style="color:#0f172a; margin:0 0 10px 0;">Advanced Analytics</h3><p style="color:#64748b; margin-top:0;">Detailed breakdown of AI detection metrics and system performance over time.</p></div>', unsafe_allow_html=True)
     st.markdown('<br>', unsafe_allow_html=True)
