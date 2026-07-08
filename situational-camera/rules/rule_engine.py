@@ -7,14 +7,25 @@ def detect_situation(detections, movement_detected):
 
     is_moving = bool(movement_detected)
 
-    # 1. Zone Collision Alerts (highest priority)
+    # 1. Zone Collision Alerts & High Priority Situations
     is_trespassing = False
     is_loitering = False
     is_perimeter_breach = False
+    is_unsafe_zone = False
+    is_fall = False
     loitering_zone = None
 
     for item in detections:
         if isinstance(item, dict) and item.get("label") == "person":
+            # Fall detection logic based on bounding box proportions (width > height)
+            if "bbox" in item:
+                x1, y1, x2, y2 = item["bbox"]
+                width = x2 - x1
+                height = y2 - y1
+                if width > height and height > 0:
+                    # Simple heuristic for fall detection
+                    is_fall = True
+
             zone_info = item.get("zone_info")
             if zone_info:
                 if zone_info.get("is_trespassing"):
@@ -24,6 +35,14 @@ def detect_situation(detections, movement_detected):
                     loitering_zone = zone_info.get("inside_zone")
                 if zone_info.get("is_perimeter_breach"):
                     is_perimeter_breach = True
+                if zone_info.get("is_unsafe_zone_breach") or (zone_info.get("inside_zone") and "Unsafe" in zone_info.get("inside_zone")):
+                    is_unsafe_zone = True
+
+    if is_fall:
+        return {"situation": "Fall Detected", "risk": "High"}
+
+    if is_unsafe_zone:
+        return {"situation": "Unsafe Zone Breach", "risk": "High"}
 
     if is_loitering:
         risk = "High" if loitering_zone == "Restricted Zone A" else "Medium"
