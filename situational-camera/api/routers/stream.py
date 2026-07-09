@@ -24,7 +24,7 @@ async def websocket_stream(websocket: WebSocket, camera_id: str):
     stream_generator = FrameProcessor.get_video_stream(camera_id, source, name)
     
     try:
-        for result in stream_generator:
+        async for result in stream_generator:
             # Check for error state in stream
             if "error" in result:
                 await websocket.send_json(result)
@@ -44,4 +44,4 @@ async def websocket_stream(websocket: WebSocket, camera_id: str):
             pass
     finally:
         # Clean shutdown (generator cleanup in finally block will release Capture)
-        pass
+        await stream_generator.aclose()

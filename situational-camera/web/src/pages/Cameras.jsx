@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Video, ShieldAlert, Plus, Trash2, Camera, AlertTriangle, CheckCircle, Wifi, RefreshCw } from "lucide-react";
 import { useCamera } from "../hooks/useCamera";
-
+import { api } from "../lib/api";
 export default function Cameras() {
   const { cameras, loading, error, addCamera, deleteCamera, fetchCameras } = useCamera();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -11,7 +11,9 @@ export default function Cameras() {
   const [sourceType, setSourceType] = useState("webcam"); // webcam, rtsp, file
   const [source, setSource] = useState("0");
   const [isTesting, setIsTesting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [testResult, setTestResult] = useState(null); // 'success', 'failed'
+  const [selectedFile, setSelectedFile] = useState(null);
   
   const handleSourceTypeChange = (type) => {
     setSourceType(type);
@@ -20,23 +22,43 @@ export default function Cameras() {
     } else if (type === "rtsp") {
       setSource("rtsp://192.168.1.100:554/h264");
     } else {
-      setSource("scratch/temp_videos/surveillance.mp4");
+      setSource("");
     }
+    setSelectedFile(null);
     setTestResult(null);
   };
 
   const handleTestConnection = async () => {
-    if (!name || !source) {
-      alert("Please enter both a camera name and a source path.");
+    if (!name) {
+      alert("Please enter a camera name.");
       return;
     }
     setIsTesting(true);
     setTestResult(null);
 
     try {
+      let finalSource = source;
+      if (sourceType === "file" && selectedFile) {
+        setIsUploading(true);
+        const res = await api.uploadVideo(selectedFile);
+        finalSource = res.file_path;
+        setSource(finalSource);
+        setSelectedFile(null);
+        setIsUploading(false);
+      } else if (sourceType === "file" && !selectedFile && !source) {
+         alert("Please select a file.");
+         setIsTesting(false);
+         return;
+      }
+      if (!finalSource) {
+         alert("Please enter a source.");
+         setIsTesting(false);
+         return;
+      }
+
       // Create a temporary connection test
       // In our backend, POST /api/cameras opens VideoCapture and tests it immediately
-      const tempCam = await addCamera(name, source);
+      const tempCam = await addCamera(name, finalSource);
       if (tempCam.status === "Live") {
         setTestResult("success");
       } else {
@@ -47,6 +69,7 @@ export default function Cameras() {
       await deleteCamera(tempCam.id);
       
     } catch (err) {
+      setIsUploading(false);
       setTestResult("failed");
     } finally {
       setIsTesting(false);
@@ -55,17 +78,31 @@ export default function Cameras() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!name || !source) return;
+    if (!name) return;
     
     try {
-      await addCamera(name, source);
+      let finalSource = source;
+      if (sourceType === "file" && selectedFile) {
+        setIsUploading(true);
+        const res = await api.uploadVideo(selectedFile);
+        finalSource = res.file_path;
+        setIsUploading(false);
+      } else if (sourceType === "file" && !selectedFile && !source) {
+         alert("Please select a file.");
+         return;
+      }
+      if (!finalSource) return;
+
+      await addCamera(name, finalSource);
       setIsModalOpen(false);
       // Reset form
       setName("");
       setSourceType("webcam");
       setSource("0");
+      setSelectedFile(null);
       setTestResult(null);
     } catch (err) {
+      setIsUploading(false);
       alert("Failed to save camera feed. Check connection parameters.");
     }
   };
@@ -265,20 +302,37 @@ export default function Cameras() {
 
               {/* Source Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-text-secondary tracking-wide block">Source Address / Index</label>
-                <input
-                  type="text"
-                  required
-                  value={source}
-                  onChange={(e) => {
-                    setSource(e.target.value);
-                    setTestResult(null);
-                  }}
-                  className="w-full bg-bg-base border border-border focus:border-accent-blue rounded-input py-2 px-3 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-blue transition-colors font-medium font-mono placeholder-text-muted"
-                  placeholder={
-                    sourceType === "webcam" ? "0 or 1" : sourceType === "rtsp" ? "rtsp://..." : "path/to/video.mp4"
-                  }
-                />
+                <label className="text-xs font-semibold text-text-secondary tracking-wide block">
+                  {sourceType === "file" ? "Upload Video File" : "Source Address / Index"}
+                </label>
+                {sourceType === "file" && !source ? (
+                  <input
+                    type="file"
+                    accept="video/*"
+                    required
+                    onChange={(e) => {
+                      if (e.target.files.length > 0) {
+                        setSelectedFile(e.target.files[0]);
+                      }
+                      setTestResult(null);
+                    }}
+                    className="w-full bg-bg-base border border-border focus:border-accent-blue rounded-input py-2 px-3 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-blue transition-colors font-medium placeholder-text-muted"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    value={source}
+                    onChange={(e) => {
+                      setSource(e.target.value);
+                      setTestResult(null);
+                    }}
+                    className="w-full bg-bg-base border border-border focus:border-accent-blue rounded-input py-2 px-3 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-blue transition-colors font-medium font-mono placeholder-text-muted"
+                    placeholder={
+                      sourceType === "webcam" ? "0 or 1" : sourceType === "rtsp" ? "rtsp://..." : "path/to/video.mp4"
+                    }
+                  />
+                )}
               </div>
 
               {/* Connection Test feedback */}
@@ -307,11 +361,11 @@ export default function Cameras() {
                 <button
                   type="button"
                   onClick={handleTestConnection}
-                  disabled={isTesting}
+                  disabled={isTesting || isUploading}
                   className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary border border-border hover:border-border-bright hover:bg-bg-elevated/40 px-3.5 py-2 rounded-btn transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                  <span>Test Connection</span>
+                  {(isTesting || isUploading) ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>{isUploading ? "Uploading..." : "Test Connection"}</span>
                 </button>
 
                 <div className="flex gap-2.5">
@@ -324,9 +378,10 @@ export default function Cameras() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-accent-blue text-text-primary text-xs font-bold rounded-btn cursor-pointer shadow-md hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-200"
+                    disabled={isTesting || isUploading}
+                    className="px-5 py-2 bg-accent-blue text-text-primary text-xs font-bold rounded-btn cursor-pointer shadow-md hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-200 disabled:opacity-50"
                   >
-                    Save Feed
+                    {isUploading ? "Uploading..." : "Save Feed"}
                   </button>
                 </div>
               </div>

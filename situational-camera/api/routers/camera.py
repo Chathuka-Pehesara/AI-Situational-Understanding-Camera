@@ -25,6 +25,20 @@ def save_cameras(cameras):
     with open(CAMERAS_FILE, "w", encoding="utf-8") as f:
         json.dump(cameras, f, indent=2)
 
+from fastapi import UploadFile, File
+import shutil
+
+@router.post("/upload")
+async def upload_video(file: UploadFile = File(...)):
+    uploads_dir = "data/uploads"
+    os.makedirs(uploads_dir, exist_ok=True)
+    file_path = os.path.join(uploads_dir, file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"file_path": file_path}
+
 @router.get("")
 def list_cameras():
     return load_cameras()
