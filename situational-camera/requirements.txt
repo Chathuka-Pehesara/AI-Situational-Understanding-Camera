@@ -6,3 +6,4 @@ google-generativeai
 fastapi
 uvicorn
 websockets
+python-multipart

@@ -2,6 +2,7 @@ import cv2
 import base64
 import time
 import os
+import asyncio
 from api.services.pipeline import pipeline_service
 
 class FrameProcessor:
@@ -14,7 +15,7 @@ class FrameProcessor:
         return base64.b64encode(buffer).decode("utf-8")
 
     @staticmethod
-    def get_video_stream(camera_id: str, source, name: str):
+    async def get_video_stream(camera_id: str, source, name: str):
         """
         Generator function that captures frames from an OpenCV source,
         processes them through the pipeline, and yields JSON responses.
@@ -29,6 +30,14 @@ class FrameProcessor:
             actual_source = int(source)
 
         cap = cv2.VideoCapture(actual_source)
+        
+        # Retry logic: hardware takes a moment to release the lock when we reconnect quickly
+        retries = 3
+        while not cap.isOpened() and retries > 0:
+            await asyncio.sleep(0.5)
+            cap = cv2.VideoCapture(actual_source)
+            retries -= 1
+
         if not cap.isOpened():
             # Yield error state
             yield {
@@ -74,10 +83,10 @@ class FrameProcessor:
 
                 yield result
 
-                # Throttle to match frame rate
+                # Throttle to match frame rate and yield to event loop
                 elapsed = time.time() - start_time
-                sleep_time = max(0, frame_delay - elapsed)
-                time.sleep(sleep_time)
+                sleep_time = max(0.01, frame_delay - elapsed)
+                await asyncio.sleep(sleep_time)
 
         finally:
             cap.release()
