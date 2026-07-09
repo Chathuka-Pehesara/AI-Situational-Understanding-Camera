@@ -1,6 +1,8 @@
 ultralytics
 opencv-python
 pandas
-streamlit
 python-dotenv
 google-generativeai
+fastapi
+uvicorn
+websockets

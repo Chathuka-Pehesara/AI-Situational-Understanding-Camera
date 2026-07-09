@@ -1,0 +1,11 @@
+[
+  {
+    "id": "cam_1",
+    "name": "Webcam Feed (0)",
+    "source": "0",
+    "status": "Live",
+    "resolution": "640x480",
+    "fps": 30.0,
+    "alert_count_today": 0
+  }
+]
