@@ -1,29 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
-
 :root {
-  --bg-base: #0A0E1A;
-  --bg-surface: #0F1629;
-  --bg-elevated: #162040;
-  --bg-overlay: #1C2951;
-  --border: #1E3058;
-  --border-bright: #2A4A80;
+  /* Dribbble Premium Light Theme - Soft Lavender-Slate Base */
+  --bg-base: #F5F7FA;          /* Clean off-white light background */
+  --bg-surface: #FFFFFF;       /* Pure white card elements */
+  --bg-elevated: #ECEEF4;      /* Soft lavender-beige hover backing */
+  --bg-overlay: rgba(255, 255, 255, 0.9); /* White frosted overlay */
+  --bg-panel: #FFFFFF;         /* Crisp white sidebar/navigation background */
+  
+  /* Borders with soft slate opacity */
+  --border: #E8EDF6;           /* Extremely clean light border */
+  --border-bright: rgba(90, 58, 255, 0.25); /* Electric cobalt hint */
+  --border-glow: rgba(90, 58, 255, 0.35);   /* Blue-indigo highlight */
 
-  --text-primary: #E8EEFF;
-  --text-secondary: #8A9BC4;
-  --text-muted: #4A5F8A;
+  /* High contrast typography (WCAG Compliant) */
+  --text-primary: #1F2133;     /* Deep indigo navy for titles */
+  --text-secondary: #5E6982;   /* Slate gray body text */
+  --text-muted: #94A1B8;       /* Clean light gray for metadata */
 
-  --accent-blue: #3B82F6;
-  --accent-cyan: #06B6D4;
-  --accent-purple: #8B5CF6;
+  /* Dribbble Cobalt & Purple Highlights */
+  --accent-primary: #5A3AFF;    /* Electric cobalt blue */
+  --accent-gold: #FFAB00;       /* Amber gold */
+  --accent-teal: #00D8A5;       /* Neon mint teal */
+  --accent-pink: #FF3D71;       /* Hibiscus pink */
+  --accent-lime: #36D399;       /* Emerald green */
 
-  --severity-critical: #EF4444;
-  --severity-high: #F97316;
-  --severity-medium: #EAB308;
-  --severity-low: #22C55E;
-  --severity-none: #64748B;
+  /* Threat categories optimized for light mode */
+  --severity-critical: #FF3B30; /* Cherry red */
+  --severity-high: #FF9500;     /* Orange */
+  --severity-medium: #FFCC00;   /* Gold yellow */
+  --severity-low: #34C759;      /* Fresh green */
+  --severity-none: #8E8E93;     /* Slate gray */
 }
 
 @theme {
@@ -31,6 +39,7 @@
   --color-bg-surface: var(--bg-surface);
   --color-bg-elevated: var(--bg-elevated);
   --color-bg-overlay: var(--bg-overlay);
+  --color-bg-panel: var(--bg-panel);
   --color-border: var(--border);
   --color-border-bright: var(--border-bright);
 
@@ -38,9 +47,11 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
 
-  --color-accent-blue: var(--accent-blue);
-  --color-accent-cyan: var(--accent-cyan);
-  --color-accent-purple: var(--accent-purple);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-gold: var(--accent-gold);
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-lime: var(--accent-lime);
 
   --color-severity-critical: var(--severity-critical);
   --color-severity-high: var(--severity-high);
@@ -48,125 +59,268 @@
   --color-severity-low: var(--severity-low);
   --color-severity-none: var(--severity-none);
   
-  --font-sans: 'Inter', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'DM Sans', sans-serif;
 
-  --radius-card: 16px;
-  --radius-btn: 10px;
-  --radius-badge: 6px;
-  --radius-input: 10px;
+  --radius-card: 20px;         /* Curved, friendly card radius */
+  --radius-btn: 12px;
+  --radius-badge: 8px;
+  --radius-input: 12px;
 }
 
-/* Global resets & styling */
+/* ── Base Global Styles ── */
 body {
   background-color: var(--bg-base);
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  position: relative;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
 
-code, pre, .font-mono {
+code, pre {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent-primary);
+}
+
+.font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Scrollbar styles */
+/* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-base);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-bright);
+  background: var(--text-muted);
 }
 
-/* Micro-interactions and custom classes */
+/* ── 1. Dribbble Soft Glow Cards ── */
+.card-glass {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px -10px rgba(90, 58, 255, 0.05), 0 4px 12px rgba(24, 26, 42, 0.02);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-/* 1. Live Pulse animation */
+.card-glass:hover {
+  border-color: rgba(90, 58, 255, 0.2);
+  box-shadow: 0 20px 40px -10px rgba(90, 58, 255, 0.12), 0 4px 20px rgba(24, 26, 42, 0.04);
+  transform: translateY(-3px);
+}
+
+/* ── 2. Curved Header Bar Decorator ── */
+.card-header-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-header-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, #5A3AFF, #8B5CF6);
+}
+
+/* ── 3. Sidebar Active Blob ── */
+.sidebar-active-blob {
+  position: relative;
+  background: linear-gradient(135deg, #5A3AFF 0%, #8B5CF6 100%);
+  color: #FFFFFF !important;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(90, 58, 255, 0.2);
+}
+
+/* ── 4. Live Pulse - Electric Cobalt ── */
 @keyframes pulse-live {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  50% { opacity: 0.8; transform: scale(1.2); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(90, 58, 255, 0.7);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 8px rgba(90, 58, 255, 0);
+  }
 }
+
 .animate-pulse-live {
-  animation: pulse-live 1.5s ease-in-out infinite;
+  animation: pulse-live 1.6s ease-in-out infinite;
 }
 
-/* 2. Alert Slide-in animation */
-@keyframes slide-in-right {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-.animate-slide-in-right {
-  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* 3. Severity Glow (Critical Alerts) */
+/* ── 5. Critical Threat Border Pulse ── */
 @keyframes glow-critical {
-  0%, 100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2), inset 0 0 5px rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), inset 0 0 10px rgba(239, 68, 68, 0.3); border-color: rgba(239, 68, 68, 1); }
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(255, 59, 48, 0.1), inset 0 0 4px rgba(255, 59, 48, 0.03);
+    border-color: rgba(255, 59, 48, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 59, 48, 0.3), inset 0 0 8px rgba(255, 59, 48, 0.1);
+    border-color: rgba(255, 59, 48, 0.85);
+  }
 }
+
 .animate-glow-critical {
-  animation: glow-critical 2s infinite ease-in-out;
+  animation: glow-critical 2.2s infinite ease-in-out;
 }
 
-/* 4. Stat Card Hover logic */
-.stat-card-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.stat-card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.15);
-  border-color: var(--border-bright);
-}
-
-/* 5. Page transitions */
-@keyframes page-enter {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-page-enter {
-  animation: page-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* ── 6. Conic Cobalt Sweep ── */
+@keyframes radar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-/* 6. Gemini Bouncing Dots */
-@keyframes bounce-dot {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-8px); }
-}
-.animate-bounce-dot {
-  animation: bounce-dot 1.4s infinite ease-in-out both;
-}
-.animation-delay-160 {
-  animation-delay: 0.16s;
-}
-.animation-delay-320 {
-  animation-delay: 0.32s;
+.radar-sweep-overlay {
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(90, 58, 255, 0.07) 0deg, transparent 90deg, transparent 360deg);
+  animation: radar-sweep 8s linear infinite;
+  pointer-events: none;
+  z-index: 10;
 }
 
-/* 7. Scanning Line for Login Page */
-@keyframes scan {
-  0% { top: 0%; opacity: 0.8; }
-  50% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
+/* ── 7. Soft Solar Scan ── */
+@keyframes scan-laser {
+  0% {
+    top: 0%;
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
 }
+
 .animate-scan {
-  animation: scan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: scan-laser 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* Custom background grid overlay */
+/* ── 8. Diagonal Button Shimmer ── */
+@keyframes button-shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 50%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-25deg);
+  left: -100%;
+  transition: none;
+}
+
+.btn-shimmer:hover::after {
+  animation: button-shimmer 0.85s ease-out forwards;
+}
+
+/* ── 9. Page Entry Fade ── */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── 10. Accent Gradients ── */
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #8B5CF6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.panel-ai {
+  border-left: 3px solid var(--accent-primary);
+  background: linear-gradient(90deg, rgba(90, 58, 255, 0.03) 0%, transparent 100%);
+  box-shadow: inset 4px 0 16px -4px rgba(90, 58, 255, 0.05);
+}
+
 .bg-dot-grid {
-  background-image: radial-gradient(rgba(59, 130, 246, 0.1) 1.5px, transparent 1.5px);
+  background-image: radial-gradient(rgba(90, 58, 255, 0.05) 1.5px, transparent 1.5px);
   background-size: 24px 24px;
+}
+
+/* ── 11. Status/Severity Badges ── */
+.badge-critical {
+  background: rgba(255, 59, 48, 0.08);
+  color: var(--severity-critical);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.badge-high {
+  background: rgba(255, 149, 0, 0.08);
+  color: var(--severity-high);
+  border: 1px solid rgba(255, 149, 0, 0.2);
+}
+
+.badge-medium {
+  background: rgba(255, 204, 0, 0.08);
+  color: var(--severity-medium);
+  border: 1px solid rgba(255, 204, 0, 0.2);
+}
+
+.badge-low {
+  background: rgba(52, 199, 89, 0.08);
+  color: var(--severity-low);
+  border: 1px solid rgba(52, 199, 89, 0.2);
+}
+
+.badge-none {
+  background: rgba(142, 142, 147, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid rgba(142, 142, 147, 0.15);
 }

@@ -49,19 +49,14 @@ export default function Sidebar({ currentPage, setCurrentPage, onLogout, systemS
               <button
                 key={item.id}
                 onClick={() => setCurrentPage(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-btn text-sm font-medium transition-all duration-200 relative group overflow-hidden ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-btn text-sm font-semibold transition-all duration-200 relative group overflow-hidden cursor-pointer ${
                   isActive
-                    ? "bg-bg-elevated text-text-primary"
-                    : "text-text-secondary hover:bg-bg-elevated/40 hover:text-text-primary"
+                    ? "sidebar-active-blob text-white"
+                    : "text-text-secondary hover:bg-bg-elevated/50 hover:text-text-primary"
                 }`}
               >
-                {/* Active left border indicator slide in */}
-                {isActive && (
-                  <span className="absolute left-0 top-0 w-1 h-full bg-accent-blue animate-[border-slide_0.2s_ease-out_forwards]" />
-                )}
-                
                 <Icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
-                  isActive ? "text-accent-blue" : "text-text-muted group-hover:text-text-secondary"
+                  isActive ? "text-white" : "text-text-muted group-hover:text-text-secondary"
                 }`} />
                 <span>{item.label}</span>
               </button>
