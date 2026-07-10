@@ -15,16 +15,21 @@ def load_all_events():
         with open(CSV_FILE, mode="r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                events.append({
-                    "timestamp": row.get("timestamp", ""),
-                    "situation": row.get("situation", ""),
-                    "risk": row.get("risk", "Low"),
-                    "explanation": row.get("explanation", ""),
-                    "focus_score": int(row.get("focus_score")) if row.get("focus_score") else 100,
-                    "safety_score": int(row.get("safety_score")) if row.get("safety_score") else 10,
-                    "gemini_confidence": float(row.get("gemini_confidence")) if row.get("gemini_confidence") else None,
-                    "gemini_verified": row.get("gemini_verified", "False") == "True"
-                })
+                try:
+                    events.append({
+                        "timestamp": row.get("timestamp", ""),
+                        "camera_id": row.get("camera_id", "unknown"),
+                        "camera_name": row.get("camera_name", "Unknown Camera"),
+                        "situation": row.get("situation", ""),
+                        "risk": row.get("risk", "Low"),
+                        "explanation": row.get("explanation", ""),
+                        "focus_score": int(row.get("focus_score")) if str(row.get("focus_score", "")).strip() else 100,
+                        "safety_score": int(row.get("safety_score")) if str(row.get("safety_score", "")).strip() else 10,
+                        "gemini_confidence": float(row.get("gemini_confidence")) if str(row.get("gemini_confidence", "")).strip() else None,
+                        "gemini_verified": str(row.get("gemini_verified", "")).strip().lower() == "true"
+                    })
+                except Exception as row_e:
+                    pass # Ignore badly formatted rows
     except Exception as e:
         print(f"Error reading CSV logs: {e}")
         

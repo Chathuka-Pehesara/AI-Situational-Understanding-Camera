@@ -151,34 +151,44 @@ export default function LiveFeed({
 
         if (label === "person" && zone_info) {
           if (zone_info.is_trespassing) {
-            color = "var(--severity-critical)";
+            color = "#FF3B30"; // var(--severity-critical)
             text = `TRESPASSER (${zone_info.loitering_duration}s)`;
           } else if (zone_info.is_loitering) {
-            color = "var(--severity-high)";
+            color = "#FF9500"; // var(--severity-high)
             text = `LOITERING (${zone_info.loitering_duration}s)`;
           } else if (zone_info.is_perimeter_breach) {
-            color = "var(--severity-medium)";
+            color = "#FFCC00"; // var(--severity-medium)
             text = `BREACH`;
           }
         } else if (label === "knife") {
-          color = "var(--severity-critical)";
+          color = "#FF3B30"; // var(--severity-critical)
           text = `WEAPON [KNIFE]`;
         }
 
-        // Draw Rect
+        // 1. Draw Translucent Fill for the box
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = color;
+        ctx.fillRect(x1, y1, width, height);
+        ctx.globalAlpha = 1.0;
+
+        // 2. Draw Bounding Box Border
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.strokeRect(x1, y1, width, height);
 
-        // Draw Label Background
-        ctx.fillStyle = color;
-        ctx.font = "bold 10px monospace";
-        const textWidth = ctx.measureText(text).width + 6;
-        ctx.fillRect(x1 - 1, y1 - 16, textWidth, 16);
+        // 3. Prevent Label from going off-screen at the top
+        const labelY = y1 > 20 ? y1 - 20 : y1;
+        const labelTextY = y1 > 20 ? y1 - 6 : y1 + 14;
 
-        // Draw Label Text
-        ctx.fillStyle = "#0A0E1A"; // Dark text contrast
-        ctx.fillText(text, x1 + 3, y1 - 4);
+        // 4. Draw Label Background
+        ctx.fillStyle = color;
+        ctx.font = "bold 11px 'Plus Jakarta Sans', sans-serif";
+        const textWidth = ctx.measureText(text).width + 10;
+        ctx.fillRect(x1 - 1, labelY, textWidth, 20);
+
+        // 5. Draw Label Text
+        ctx.fillStyle = "#ffffff"; // Crisp white text
+        ctx.fillText(text, x1 + 4, labelTextY);
       });
     }
   }, [detections, imgSize, frame]);

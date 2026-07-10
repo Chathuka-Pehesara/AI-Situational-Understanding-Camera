@@ -16,7 +16,7 @@ def log_event(event: dict):
     os.makedirs(os.path.dirname(CSV_FILE), exist_ok=True)
     
     # Include optional Gemini fields
-    fieldnames = ["timestamp", "situation", "risk", "explanation", "focus_score", "safety_score", "gemini_confidence", "gemini_verified"]
+    fieldnames = ["timestamp", "camera_id", "camera_name", "situation", "risk", "explanation", "focus_score", "safety_score", "gemini_confidence", "gemini_verified"]
     file_exists = os.path.exists(CSV_FILE)
     
     try:
@@ -26,6 +26,8 @@ def log_event(event: dict):
                 writer.writeheader()
             writer.writerow({
                 "timestamp": event.get("timestamp", ""),
+                "camera_id": event.get("camera_id", "unknown"),
+                "camera_name": event.get("camera_name", "Unknown Camera"),
                 "situation": event.get("situation", ""),
                 "risk": event.get("risk", ""),
                 "explanation": event.get("explanation", ""),
