@@ -102,6 +102,8 @@ class PipelineService:
         if situation != last_situation:
             event = {
                 "timestamp": timestamp,
+                "camera_id": camera_id,
+                "camera_name": camera_name,
                 "situation": situation,
                 "risk": risk,
                 "explanation": explanation,

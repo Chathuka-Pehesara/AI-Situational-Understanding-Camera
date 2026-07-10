@@ -11,29 +11,36 @@ import {
   ResponsiveContainer, 
   Cell 
 } from "recharts";
-import { ShieldCheck, Flame, PieChart, TrendingUp } from "lucide-react";
+import { ShieldCheck, Flame, PieChart, TrendingUp, Filter } from "lucide-react";
 import { api } from "../lib/api";
+import { useCamera } from "../hooks/useCamera";
 import AlertsChart from "../components/analytics/AlertsChart";
 import RiskTrendChart from "../components/analytics/RiskTrendChart";
 import HeatmapGrid from "../components/analytics/HeatmapGrid";
 
 export default function Analytics() {
-  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { cameras } = useCamera();
+  const [selectedCameraId, setSelectedCameraId] = useState("all");
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadData = async (isInitial = false) => {
       try {
+        if (isInitial) setLoading(true);
         // Fetch up to 1000 logged events for analysis
         const res = await api.getEvents(1, 1000);
-        setEvents(res.events || []);
+        setAllEvents(res.events || []);
       } catch (err) {
         console.error("Error loading analytics data:", err);
       } finally {
-        setLoading(false);
+        if (isInitial) setLoading(false);
       }
     };
-    loadData();
+    
+    loadData(true);
+    const interval = setInterval(() => loadData(false), 3000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -43,6 +50,11 @@ export default function Analytics() {
       </div>
     );
   }
+
+  // Filter events based on selected camera
+  const events = selectedCameraId === "all" 
+    ? allEvents 
+    : allEvents.filter(e => e.camera_id === selectedCameraId);
 
   // 1. KPI Calculations
   const totalIncidents = events.length;
@@ -134,6 +146,30 @@ export default function Analytics() {
   return (
     <div className="space-y-6 flex flex-col h-full min-w-0 select-none animate-page-enter">
       
+      {/* Header with Camera Filter */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-black text-text-primary uppercase tracking-widest">Analytics Overview</h1>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-text-secondary text-xs uppercase tracking-wider font-bold">
+            <Filter className="w-4 h-4" />
+            <span>Filter Feed:</span>
+          </div>
+          <select
+            value={selectedCameraId}
+            onChange={(e) => setSelectedCameraId(e.target.value)}
+            className="bg-bg-surface border border-border focus:border-accent-blue text-sm text-text-primary rounded-btn px-4 py-2 focus:outline-none cursor-pointer hover:bg-bg-elevated transition-colors duration-200 shadow-sm font-semibold"
+          >
+            <option value="all">ALL CAMERAS</option>
+            {cameras.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* ROW 1: KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         

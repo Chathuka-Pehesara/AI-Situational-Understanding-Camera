@@ -15,7 +15,7 @@ class FrameProcessor:
         return base64.b64encode(buffer).decode("utf-8")
 
     @staticmethod
-    async def get_video_stream(camera_id: str, source, name: str):
+    async def get_video_stream(camera_id: str, source, name: str, stream_control: dict = None):
         """
         Generator function that captures frames from an OpenCV source,
         processes them through the pipeline, and yields JSON responses.
@@ -51,20 +51,41 @@ class FrameProcessor:
             fps = 30.0  # Default fallback
 
         frame_delay = 1.0 / fps
-        is_video_file = isinstance(actual_source, str) and os.path.exists(actual_source)
+        is_video_file = isinstance(actual_source, str) and not str(actual_source).isdigit()
 
         try:
+            last_result = None
+            
             while cap.isOpened():
+                if stream_control and stream_control.get("stop"):
+                    break
+                    
+                if stream_control and stream_control.get("seek_to_frame") is not None:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, stream_control["seek_to_frame"])
+                    stream_control["seek_to_frame"] = None
+                    last_result = None
+                    
+                if stream_control and stream_control.get("paused"):
+                    await asyncio.sleep(0.1)
+                    if last_result:
+                        yield last_result
+                    continue
+
                 start_time = time.time()
                 ret, frame = cap.read()
+                
+                total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) if is_video_file else 0
+                current_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES)) if is_video_file else 0
 
                 if not ret:
                     if is_video_file:
-                        # Loop video file
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        ret, frame = cap.read()
-                        if not ret:
-                            break
+                        # Pause video file at end instead of looping immediately
+                        if stream_control:
+                            stream_control["paused"] = True
+                        else:
+                            # Fallback if no control is provided
+                            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        continue
                     else:
                         # Webcam or stream disconnected
                         break
@@ -80,6 +101,13 @@ class FrameProcessor:
                 result["frame"] = base64_frame
                 result["camera_name"] = name
                 result["camera_id"] = camera_id
+                
+                # Yield metadata for video controls
+                result["is_video_file"] = is_video_file
+                result["current_frame"] = current_frame
+                result["total_frames"] = total_frames
+                
+                last_result = result
 
                 yield result
 
