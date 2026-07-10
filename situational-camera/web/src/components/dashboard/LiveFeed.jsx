@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Play, Square, AlertCircle, RefreshCw } from "lucide-react";
+import { Play, Pause, Square, AlertCircle, RefreshCw } from "lucide-react";
 import { DETECTOR_COLORS } from "../../lib/constants";
 
 // The hardcoded zone coords matching the backend main.py setup
@@ -34,12 +34,32 @@ export default function LiveFeed({
   cameras = [], 
   onCameraChange, 
   selectedCameraId,
-  onReconnect
+  onReconnect,
+  sendMessage,
+  isVideoFile,
+  currentFrame,
+  totalFrames
 }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
   const [imgSize, setImgSize] = useState({ width: 0, height: 0 });
+  const [isPaused, setIsPaused] = useState(false);
+
+  const handleTogglePlay = () => {
+    const newState = !isPaused;
+    setIsPaused(newState);
+    if (sendMessage) {
+      sendMessage({ command: newState ? "pause" : "play" });
+    }
+  };
+
+  const handleSeek = (e) => {
+    const frame = parseInt(e.target.value, 10);
+    if (sendMessage) {
+      sendMessage({ command: "seek", frame_index: frame });
+    }
+  };
 
   // Update canvas size when container size or image size changes
   const updateCanvasSize = () => {
@@ -173,7 +193,7 @@ export default function LiveFeed({
     <div className="bg-bg-surface border border-border rounded-card overflow-hidden flex flex-col flex-1 min-w-0 shadow-lg">
       
       {/* Top Header Controls */}
-      <div className="px-5 py-3 border-b border-border bg-bg-surface/50 flex items-center justify-between select-none">
+      <div className="shrink-0 px-5 py-3 border-b border-border bg-bg-surface/50 flex items-center justify-between select-none">
         <div className="flex items-center gap-3">
           <span className="flex h-2.5 w-2.5 relative">
             {wsStatus === "connected" && (
@@ -215,7 +235,7 @@ export default function LiveFeed({
       </div>
 
       {/* Screen Frame Container */}
-      <div ref={containerRef} className="bg-bg-base relative flex-1 flex items-center justify-center min-h-[360px] max-h-[520px] overflow-hidden">
+      <div ref={containerRef} className="bg-bg-base relative flex-1 min-h-0 flex items-center justify-center overflow-hidden">
         {frame ? (
           <div className="relative w-full h-full flex items-center justify-center">
             {/* Base64 frame image */}
@@ -253,11 +273,34 @@ export default function LiveFeed({
       </div>
 
       {/* Bottom Telemetry Bar */}
-      <div className="px-5 py-2.5 border-t border-border bg-bg-surface/50 text-[10px] text-text-secondary font-mono flex items-center justify-between select-none">
+      <div className="shrink-0 px-5 py-2.5 border-t border-border bg-bg-surface/50 text-[10px] text-text-secondary font-mono flex items-center justify-between select-none">
         <div className="flex items-center gap-1.5">
           <span className="text-text-muted">CAMERA:</span>
           <span className="text-text-primary font-bold">{cameraName || "Unknown"}</span>
         </div>
+
+        {isVideoFile && (
+          <div className="flex-1 max-w-md mx-6 flex items-center gap-3">
+            <button 
+              onClick={handleTogglePlay}
+              className="text-text-secondary hover:text-accent-blue transition-colors outline-none"
+            >
+              {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            </button>
+            <input 
+              type="range" 
+              min="0" 
+              max={totalFrames > 0 ? totalFrames - 1 : 100} 
+              value={currentFrame || 0} 
+              onChange={handleSeek}
+              className="flex-1 h-1 bg-bg-base rounded-lg appearance-none cursor-pointer accent-accent-blue"
+            />
+            <span className="text-text-muted text-[9px]">
+              {Math.floor(currentFrame / fps || 0)}s / {Math.floor(totalFrames / fps || 0)}s
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center gap-4">
           <div>
             <span className="text-text-muted">RES:</span>{" "}

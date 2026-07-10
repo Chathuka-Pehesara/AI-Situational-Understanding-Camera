@@ -24,7 +24,10 @@ export default function Dashboard() {
     gemini_verified: false,
     fps: 0,
     resolution: "",
-    timestamp: ""
+    timestamp: "",
+    is_video_file: false,
+    current_frame: 0,
+    total_frames: 0
   });
 
   // Set default selected camera
@@ -36,7 +39,7 @@ export default function Dashboard() {
 
   // Handle incoming frames from WebSocket
   const handleFrameMessage = (data) => {
-    setStreamData(data);
+    setStreamData((prev) => ({ ...prev, ...data }));
     
     // If the frame represents an incident alert, trigger local visual alert immediately
     if (data.situation && data.risk && data.risk !== "Low") {
@@ -55,7 +58,7 @@ export default function Dashboard() {
     }
   };
 
-  const { status: wsStatus, connect: reconnectWS } = useWebSocket(selectedCameraId, handleFrameMessage);
+  const { status: wsStatus, connect: reconnectWS, sendMessage } = useWebSocket(selectedCameraId, handleFrameMessage);
 
   // Derive stats
   const activeCamerasCount = cameras.filter((c) => c.status === "Live" || c.id === selectedCameraId).length;
@@ -77,7 +80,10 @@ export default function Dashboard() {
       gemini_verified: false,
       fps: 0,
       resolution: "",
-      timestamp: ""
+      timestamp: "",
+      is_video_file: false,
+      current_frame: 0,
+      total_frames: 0
     });
   };
 
@@ -109,6 +115,10 @@ export default function Dashboard() {
           selectedCameraId={selectedCameraId}
           onCameraChange={handleCameraChange}
           onReconnect={reconnectWS}
+          sendMessage={sendMessage}
+          isVideoFile={streamData.is_video_file}
+          currentFrame={streamData.current_frame}
+          totalFrames={streamData.total_frames}
         />
 
         {/* Real-time Alerts Feed */}

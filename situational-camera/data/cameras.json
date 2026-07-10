@@ -7,5 +7,14 @@
     "resolution": "640x480",
     "fps": 30.0,
     "alert_count_today": 0
+  },
+  {
+    "id": "cam_2",
+    "name": "test",
+    "source": "data/uploads\\5278-182817488_medium.mp4",
+    "status": "Live",
+    "resolution": "1280x720",
+    "fps": 25.0,
+    "alert_count_today": 0
   }
 ]

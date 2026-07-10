@@ -17,6 +17,7 @@ export const useWebSocket = (cameraId, onMessage) => {
       clearTimeout(reconnectTimeoutRef.current);
     }
     if (wsRef.current) {
+      wsRef.current.onclose = null; // Prevent stale reconnect loop
       wsRef.current.close();
       wsRef.current = null;
     }
@@ -63,6 +64,12 @@ export const useWebSocket = (cameraId, onMessage) => {
     };
   }, [cameraId, disconnect]);
 
+  const sendMessage = useCallback((msg) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(msg));
+    }
+  }, []);
+
   useEffect(() => {
     connect();
     return () => {
@@ -70,5 +77,6 @@ export const useWebSocket = (cameraId, onMessage) => {
     };
   }, [cameraId, connect, disconnect]);
 
-  return { status, connect, disconnect };
+  return { status, connect, disconnect, sendMessage };
 };
+
