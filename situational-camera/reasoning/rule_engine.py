@@ -179,18 +179,7 @@ def evaluate_situation(detections, movement_detected, frame=None, confidence_thr
         elif "person" in labels:
             confidence = max(confidence, 0.7)  # Normal activity
     
-    # If confidence is below threshold and frame is available, use Gemini for verification
-    if confidence < confidence_threshold and frame is not None:
-        gemini_result = gemini_verify_situation(frame, detections, initial_situation, initial_risk)
-        
-        # Use Gemini's assessment if it has higher confidence
-        if gemini_result["confidence"] > confidence:
-            return {
-                "situation": gemini_result["situation"],
-                "risk": gemini_result["risk"],
-                "confidence": gemini_result["confidence"],
-                "gemini_verified": True
-            }
+    # Gemini verification disabled to prevent per-frame lag
     
     return {
         "situation": initial_situation,
