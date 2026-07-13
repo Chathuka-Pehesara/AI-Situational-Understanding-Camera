@@ -18,6 +18,7 @@ EXPLANATION_TEMPLATES = {
     "Unauthorized Device": "An unauthorized device (e.g. phone) has been detected.",
     "Looking Away (Left)": "Student's head is turned away from the screen to the left.",
     "Looking Away (Right)": "Student's head is turned away from the screen to the right.",
+    "Looking Away": "Student's head is turned away from the screen.",
     "Looking Away (Out of Bounds)": "Student's head has moved out of bounds or they are looking away.",
     "Suspicious Movement (Left)": "Student has leaned suspiciously to the left.",
     "Suspicious Movement (Right)": "Student has leaned suspiciously to the right.",

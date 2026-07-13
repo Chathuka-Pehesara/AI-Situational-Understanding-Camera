@@ -59,18 +59,9 @@ def detect_situation(detections, movement_detected):
     if "knife" in labels:
         return {"situation": "Weapon Detected", "risk": "High"}
 
-    # Zone Violations (Out of Bounds / Suspicious Movement)
+    # Zone Violations and Head Pose
     if is_head_left:
-        return {"situation": "Looking Away (Out of Bounds)", "risk": "High"}
-        
-    if is_unsafe_zone:
-        return {"situation": "Looking Away (Out of Bounds)", "risk": "High"}
-
-    if is_trespassing:
-        return {"situation": "Suspicious Movement (Left)", "risk": "Medium"}
-        
-    if is_perimeter_breach:
-        return {"situation": "Suspicious Movement (Right)", "risk": "Medium"}
+        return {"situation": "Looking Away", "risk": "High"}
 
     if is_loitering:
         return {"situation": "Prolonged Suspicious Movement", "risk": "High"}
@@ -98,12 +89,12 @@ def detect_situation(detections, movement_detected):
     ):
         return {"situation": "Distracted Walking", "risk": "High"}
 
-    # 3. Working: person + laptop (low risk if stationary, medium risk if moving)
+    # 3. Working: person + laptop (always low risk for exams to allow typing)
     if (
         "person" in labels
         and "laptop" in labels
     ):
-        return {"situation": "Working", "risk": "Medium" if is_moving else "Low"}
+        return {"situation": "Working", "risk": "Low"}
 
     # 4. Hurrying: person moving while carrying bag or bottle
     if (
