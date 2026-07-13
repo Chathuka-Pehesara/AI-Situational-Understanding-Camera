@@ -4,23 +4,23 @@ import { DETECTOR_COLORS } from "../../lib/constants";
 
 // The hardcoded zone coords matching the backend main.py setup
 const ZONES = {
-  "Restricted Zone A": [
-    [30, 80],
-    [250, 80],
-    [220, 400],
-    [10, 400]
+  "Suspicious Movement (Left)": [
+    [100, 150],
+    [200, 150],
+    [200, 350],
+    [100, 350]
   ],
-  "Perimeter Gate": [
-    [380, 120],
-    [600, 120],
-    [620, 450],
-    [400, 450]
+  "Suspicious Movement (Right)": [
+    [440, 150],
+    [540, 150],
+    [540, 350],
+    [440, 350]
   ],
-  "Unsafe Zone B": [
-    [250, 10],
-    [400, 10],
-    [400, 100],
-    [250, 100]
+  "Out of Bounds (Looking Away)": [
+    [250, 50],
+    [390, 50],
+    [390, 150],
+    [250, 150]
   ]
 };
 
@@ -173,22 +173,23 @@ export default function LiveFeed({
 
         // 2. Draw Bounding Box Border
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 3.5; // Increased line width
         ctx.strokeRect(x1, y1, width, height);
 
         // 3. Prevent Label from going off-screen at the top
-        const labelY = y1 > 20 ? y1 - 20 : y1;
-        const labelTextY = y1 > 20 ? y1 - 6 : y1 + 14;
+        const labelHeight = 24; // Increased background height
+        const labelY = y1 > labelHeight ? y1 - labelHeight : y1;
+        const labelTextY = y1 > labelHeight ? y1 - 7 : y1 + 16;
 
         // 4. Draw Label Background
         ctx.fillStyle = color;
-        ctx.font = "bold 11px 'Plus Jakarta Sans', sans-serif";
-        const textWidth = ctx.measureText(text).width + 10;
-        ctx.fillRect(x1 - 1, labelY, textWidth, 20);
+        ctx.font = "bold 14px 'Plus Jakarta Sans', sans-serif"; // Increased font size
+        const textWidth = ctx.measureText(text).width + 12; // Added more padding
+        ctx.fillRect(x1 - 1.5, labelY, textWidth, labelHeight);
 
         // 5. Draw Label Text
         ctx.fillStyle = "#ffffff"; // Crisp white text
-        ctx.fillText(text, x1 + 4, labelTextY);
+        ctx.fillText(text, x1 + 5, labelTextY);
       });
     }
   }, [detections, imgSize, frame]);

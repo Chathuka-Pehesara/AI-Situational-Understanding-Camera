@@ -156,10 +156,14 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
         t_id = det["track_id"]
         bbox = det["bbox"]
         
-        # Bounding box center point (modified to center to allow testing on laptop webcams)
-        feet_x = int((bbox[0] + bbox[2]) / 2.0)
-        feet_y = int((bbox[1] + bbox[3]) / 2.0)
-        pt = (feet_x, feet_y)
+        # Check center and corners of bounding box to make it very easy to trigger zones in webcam mode
+        pts_to_test = [
+            (int((bbox[0] + bbox[2]) / 2.0), int((bbox[1] + bbox[3]) / 2.0)), # center
+            (int(bbox[0]), int(bbox[1])), # top-left
+            (int(bbox[2]), int(bbox[1])), # top-right
+            (int(bbox[0]), int(bbox[3])), # bottom-left
+            (int(bbox[2]), int(bbox[3])), # bottom-right
+        ]
         
         inside_zone = None
         loitering_duration = 0.0
@@ -176,8 +180,8 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
             # Format polygon for OpenCV pointPolygonTest
             poly_np = np.array(polygon, dtype=np.int32).reshape((-1, 1, 2))
             
-            # Perform point-in-polygon test (>= 0 means inside or on edge)
-            is_inside = cv2.pointPolygonTest(poly_np, pt, False) >= 0
+            # Perform point-in-polygon test for all points (trigger if ANY point is inside)
+            is_inside = any(cv2.pointPolygonTest(poly_np, pt, False) >= 0 for pt in pts_to_test)
             
             if is_inside:
                 inside_zone = zone_name
@@ -190,11 +194,11 @@ def track_and_analyze_zones(detections, zones=None, loitering_threshold=5.0):
                 duration = current_time - occupancies[zone_name]
                 loitering_duration = max(loitering_duration, duration)
                 
-                if zone_name == "Restricted Zone A":
+                if zone_name == "Suspicious Movement (Left)":
                     is_trespassing = True
-                elif zone_name == "Perimeter Gate":
+                elif zone_name == "Suspicious Movement (Right)":
                     is_perimeter_breach = True
-                elif "Unsafe" in zone_name or "unsafe" in zone_name.lower():
+                elif "Looking Away" in zone_name or "out of bounds" in zone_name.lower():
                     is_unsafe_zone_breach = True
                     
                 if duration >= loitering_threshold:

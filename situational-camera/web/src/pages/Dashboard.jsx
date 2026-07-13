@@ -129,13 +129,14 @@ export default function Dashboard() {
         
       </div>
 
-      {/* SECTION 3: Detailed Gemini Reasoning logs */}
+      {/* SECTION 3: Detailed Scene Reasoning */}
       <GeminiPanel 
         situation={streamData.situation}
         risk={streamData.risk}
         explanation={streamData.explanation}
         confidence={streamData.gemini_confidence}
         geminiVerified={streamData.gemini_verified}
+        detections={streamData.detections}
       />
 
     </div>
