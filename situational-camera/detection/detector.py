@@ -2,8 +2,62 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-# Initialize YOLOv8 model globally to avoid loading it on every frame
+# Initialize YOLOv8 models globally to avoid loading them on every frame
 _model = None
+_pose_model = None
+
+def _get_pose_model():
+    global _pose_model
+    if _pose_model is None:
+        _pose_model = YOLO("yolov8n-pose.pt")
+    return _pose_model
+
+def analyze_head_pose(frame, bbox=None):
+    if frame is None or bbox is None:
+        return "forward"
+        
+    try:
+        x1, y1, x2, y2 = map(int, bbox)
+        
+        # Add safety boundaries
+        h, w = frame.shape[:2]
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w, x2), min(h, y2)
+        
+        if x2 <= x1 or y2 <= y1:
+            return "forward"
+            
+        crop = frame[y1:y2, x1:x2]
+        pose_model = _get_pose_model()
+        results = pose_model.predict(crop, verbose=False)
+        
+        if len(results) > 0 and results[0].keypoints is not None:
+            xy = results[0].keypoints.xy
+            if len(xy) > 0 and len(xy[0]) >= 5:
+                # 0: nose, 1: left eye, 2: right eye, 3: left ear, 4: right ear
+                nose_x = float(xy[0][0][0])
+                left_ear_x = float(xy[0][3][0])
+                right_ear_x = float(xy[0][4][0])
+                
+                if nose_x > 0:
+                    # If one ear is hidden, head is turned
+                    if left_ear_x > 0 and right_ear_x == 0:
+                        return "left"
+                    if right_ear_x > 0 and left_ear_x == 0:
+                        return "right"
+                    
+                    # If both ears visible, compare distances to nose
+                    if left_ear_x > 0 and right_ear_x > 0:
+                        dist_l = abs(nose_x - left_ear_x)
+                        dist_r = abs(nose_x - right_ear_x)
+                        if dist_r > 0 and (dist_l / dist_r) > 2.0:
+                            return "right"
+                        if dist_l > 0 and (dist_r / dist_l) > 2.0:
+                            return "left"
+                            
+        return "forward"
+    except Exception as e:
+        return "forward"
 
 # Mappings from COCO class names / indices to the shared data-contract labels
 CLASS_MAPPING = {
@@ -69,6 +123,7 @@ def detect_objects(frame):
     results = model.predict(source=frame, classes=TARGET_CLASSES, conf=0.3, iou=0.45, verbose=False)
 
     detections = []
+    
     if len(results) > 0:
         boxes = results[0].boxes
         if boxes is not None:
@@ -82,11 +137,15 @@ def detect_objects(frame):
 
                 label = CLASS_MAPPING.get(cls_id)
                 if label is not None:
-                    detections.append({
+                    bbox = [float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])]
+                    det = {
                         "label": label,
-                        "bbox": [float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])],
+                        "bbox": bbox,
                         "confidence": conf,
                         "track_id": track_id
-                    })
+                    }
+                    if label == "person":
+                        det["head_pose"] = analyze_head_pose(frame, bbox)
+                    detections.append(det)
 
     return detections

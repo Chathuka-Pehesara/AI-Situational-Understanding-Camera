@@ -13,7 +13,15 @@ EXPLANATION_TEMPLATES = {
     "Hurrying": "Person is moving quickly with belongings.",
     "Normal Activity": "Person is performing normal daily activity.",
     "Fall Detected": "Person has likely fallen down.",
-    "Unsafe Zone Breach": "Person has entered an unsafe zone."
+    "Exam in Progress": "Student is actively taking the exam and facing the screen.",
+    "Multiple People Detected": "More than one person detected in the frame. Potential cheating.",
+    "Unauthorized Device": "An unauthorized device (e.g. phone) has been detected.",
+    "Looking Away (Left)": "Student's head is turned away from the screen to the left.",
+    "Looking Away (Right)": "Student's head is turned away from the screen to the right.",
+    "Looking Away (Out of Bounds)": "Student's head has moved out of bounds or they are looking away.",
+    "Suspicious Movement (Left)": "Student has leaned suspiciously to the left.",
+    "Suspicious Movement (Right)": "Student has leaned suspiciously to the right.",
+    "Prolonged Suspicious Movement": "Student has been making suspicious movements for a prolonged period."
 }
 
 
@@ -55,6 +63,8 @@ def generate_explanation(frame, detections, situation, risk):
                 action = "has been loitering inside a restricted zone for a prolonged period"
             elif "fall" in s_low:
                 action = "appears to have fallen down"
+            elif "webcam" in s_low:
+                action = "is sitting comfortably at the computer"
             elif "unsafe" in s_low:
                 action = "has entered an unsafe zone"
 

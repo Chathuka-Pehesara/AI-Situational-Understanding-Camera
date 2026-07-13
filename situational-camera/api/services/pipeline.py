@@ -15,23 +15,23 @@ from api.services.alert_manager import alert_manager
 
 # Default zones for processing
 DEFAULT_ZONES = {
-    "Restricted Zone A": [
-        [30, 80],
-        [250, 80],
-        [220, 400],
-        [10, 400]
+    "Suspicious Movement (Left)": [
+        [100, 150],
+        [200, 150],
+        [200, 350],
+        [100, 350]
     ],
-    "Perimeter Gate": [
-        [380, 120],
-        [600, 120],
-        [620, 450],
-        [400, 450]
+    "Suspicious Movement (Right)": [
+        [440, 150],
+        [540, 150],
+        [540, 350],
+        [440, 350]
     ],
-    "Unsafe Zone B": [
-        [250, 10],
-        [400, 10],
-        [400, 100],
-        [250, 100]
+    "Out of Bounds (Looking Away)": [
+        [250, 50],
+        [390, 50],
+        [390, 150],
+        [250, 150]
     ]
 }
 

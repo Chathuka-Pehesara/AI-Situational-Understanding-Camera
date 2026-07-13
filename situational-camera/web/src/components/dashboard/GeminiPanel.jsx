@@ -1,10 +1,17 @@
 import React from "react";
-import { Brain, ShieldAlert, BadgeCheck } from "lucide-react";
+import { Activity, ShieldAlert } from "lucide-react";
 import { getSeverity } from "../../lib/constants";
 
-export default function GeminiPanel({ situation, risk, explanation, confidence, geminiVerified }) {
+export default function GeminiPanel({ situation, risk, explanation, confidence, geminiVerified, detections = [] }) {
   const sev = getSeverity(situation, risk);
   const confidencePercent = confidence ? Math.round(confidence * 100) : 50;
+
+  // Calculate some valuable local metrics from detections
+  const peopleCount = detections.filter(d => d.label === "person").length;
+  const objectCount = detections.filter(d => d.label !== "person").length;
+  
+  const objectLabels = detections.filter(d => d.label !== "person").map(d => d.label);
+  const uniqueObjects = [...new Set(objectLabels)];
 
   return (
     <div className="bg-bg-surface border border-border rounded-card p-6 shadow-lg select-none animate-page-enter">
@@ -12,17 +19,11 @@ export default function GeminiPanel({ situation, risk, explanation, confidence, 
       {/* Header */}
       <div className="flex items-center justify-between mb-5 border-b border-border/40 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-btn bg-accent-purple/20 border border-accent-purple/40 flex items-center justify-center text-accent-purple shadow-[0_0_10px_rgba(139,92,246,0.2)]">
-            <Brain className="w-4 h-4 animate-pulse" />
+          <div className="w-8 h-8 rounded-btn bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center text-accent-blue shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+            <Activity className="w-4 h-4 animate-pulse" />
           </div>
-          <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Gemini Cognitive Insight</h2>
+          <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Local Scene Intelligence</h2>
         </div>
-        {geminiVerified && (
-          <div className="flex items-center gap-1 bg-accent-purple/10 border border-accent- purple/30 text-accent-purple text-[10px] font-bold px-2 py-0.5 rounded-full select-none shadow-[0_0_10px_rgba(139,92,246,0.1)]">
-            <BadgeCheck className="w-3.5 h-3.5" />
-            <span>AI Verified</span>
-          </div>
-        )}
       </div>
 
       {/* Grid Content */}
@@ -37,17 +38,17 @@ export default function GeminiPanel({ situation, risk, explanation, confidence, 
             </p>
           </div>
 
-          {/* Confidence Slider Gauge */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-text-secondary font-medium">Assurance Level</span>
-              <span className="font-mono text-accent-purple font-semibold">{confidencePercent}%</span>
+          {/* Active Entities Summary */}
+          <div className="flex items-center gap-4 text-xs mt-3">
+            <div className="bg-bg-base px-3 py-1.5 rounded-btn border border-border flex items-center gap-2">
+              <span className="text-text-muted">People Tracked:</span>
+              <span className="font-bold text-accent-cyan">{peopleCount}</span>
             </div>
-            <div className="h-2 w-full bg-bg-base border border-border rounded-full overflow-hidden">
-              <div 
-                style={{ width: `${confidencePercent}%` }}
-                className="h-full bg-gradient-to-r from-accent-blue via-accent-purple to-accent-cyan rounded-full transition-all duration-1000 ease-out"
-              />
+            <div className="bg-bg-base px-3 py-1.5 rounded-btn border border-border flex items-center gap-2">
+              <span className="text-text-muted">Other Objects:</span>
+              <span className="font-bold text-accent-purple">
+                {uniqueObjects.length > 0 ? uniqueObjects.join(", ") : "None"} ({objectCount})
+              </span>
             </div>
           </div>
         </div>
@@ -74,9 +75,9 @@ export default function GeminiPanel({ situation, risk, explanation, confidence, 
           </div>
 
           <div className="flex justify-between items-center text-xs">
-            <span className="text-text-secondary font-medium">Confidence Score:</span>
+            <span className="text-text-secondary font-medium">Rule Confidence:</span>
             <span className="text-text-primary font-mono font-bold">
-              {confidence ? confidence.toFixed(2) : "0.50"}
+              {confidencePercent}%
             </span>
           </div>
         </div>

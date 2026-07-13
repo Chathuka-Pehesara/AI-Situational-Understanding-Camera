@@ -13,18 +13,28 @@ def detect_situation(detections, movement_detected):
     is_perimeter_breach = False
     is_unsafe_zone = False
     is_fall = False
+    is_webcam_user = False
+    is_head_left = False
+    is_head_right = False
     loitering_zone = None
 
     for item in detections:
         if isinstance(item, dict) and item.get("label") == "person":
+            if item.get("head_pose") in ["left", "right", "away"]:
+                is_head_left = True # We treat all 'away' as a generic 'Looking Away' alert
+                
             # Fall detection logic based on bounding box proportions (width > height)
             if "bbox" in item:
                 x1, y1, x2, y2 = item["bbox"]
                 width = x2 - x1
                 height = y2 - y1
                 if width > height and height > 0:
-                    # Simple heuristic for fall detection
-                    is_fall = True
+                    # If the bounding box is very large, it's likely a person sitting close to a webcam
+                    if width > 250 and height > 200:
+                        is_webcam_user = True
+                    else:
+                        # Simple heuristic for fall detection
+                        is_fall = True
 
             zone_info = item.get("zone_info")
             if zone_info:
@@ -38,25 +48,39 @@ def detect_situation(detections, movement_detected):
                 if zone_info.get("is_unsafe_zone_breach") or (zone_info.get("inside_zone") and "Unsafe" in zone_info.get("inside_zone")):
                     is_unsafe_zone = True
 
-    if is_fall:
-        return {"situation": "Fall Detected", "risk": "High"}
+    # 1. High Priority Proctoring Rules
+    if labels.count("person") > 1:
+        return {"situation": "Multiple People Detected", "risk": "High"}
+        
+    if "cell phone" in labels or "phone" in labels:
+        return {"situation": "Unauthorized Device", "risk": "High"}
 
-    if is_unsafe_zone:
-        return {"situation": "Unsafe Zone Breach", "risk": "High"}
-
-    if is_loitering:
-        risk = "High" if loitering_zone == "Restricted Zone A" else "Medium"
-        return {"situation": "Loitering", "risk": risk}
-
-    if is_trespassing:
-        return {"situation": "Trespassing", "risk": "High"}
-
-    if is_perimeter_breach:
-        return {"situation": "Perimeter Breach", "risk": "Medium"}
-
-    # Weapon Detected (highest priority threat after zones)
+    # Weapon Detected (just in case)
     if "knife" in labels:
         return {"situation": "Weapon Detected", "risk": "High"}
+
+    # Zone Violations (Out of Bounds / Suspicious Movement)
+    if is_head_left:
+        return {"situation": "Looking Away (Out of Bounds)", "risk": "High"}
+        
+    if is_unsafe_zone:
+        return {"situation": "Looking Away (Out of Bounds)", "risk": "High"}
+
+    if is_trespassing:
+        return {"situation": "Suspicious Movement (Left)", "risk": "Medium"}
+        
+    if is_perimeter_breach:
+        return {"situation": "Suspicious Movement (Right)", "risk": "Medium"}
+
+    if is_loitering:
+        return {"situation": "Prolonged Suspicious Movement", "risk": "High"}
+
+    # Webcam / Fall detection
+    if is_webcam_user:
+        return {"situation": "Exam in Progress", "risk": "Low"}
+
+    if is_fall:
+        return {"situation": "Fall Detected", "risk": "High"}
 
     # Animal Intrusion (low/medium risk stray animal check)
     if "animal" in labels:
