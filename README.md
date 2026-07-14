@@ -1,11 +1,30 @@
-# 🎥 AI Situational Understanding Camera
+# 🎥 AI Situational Understanding Camera (SituVision AI)
 
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B.svg)](https://streamlit.io/)
-[![YOLOv8](https://img.shields.io/badge/YOLOv8-Computer--Vision-green.svg)](https://github.com/ultralytics/ultralytics)
+<div align="center">
+  <p><strong>An intelligent real-time camera processing pipeline for object detection, movement tracking, and situational reasoning.</strong></p>
 
-An intelligent real-time camera processing pipeline that performs object detection, movement tracking, and situational reasoning. By combining spatial awareness with custom rule-based heuristics, this system calculates real-time focus & safety scores, displays graphical overlays, logs events, and hosts an interactive Streamlit dashboard.
+  [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg?style=for-the-badge&logo=python)](https://www.python.org/)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+  [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+  [![YOLOv8](https://img.shields.io/badge/YOLOv8-Vision-green.svg?style=for-the-badge&logo=ultralytics)](https://github.com/ultralytics/ultralytics)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+</div>
+
+<br />
+
+By combining spatial awareness with custom rule-based heuristics and Generative AI, this system calculates real-time focus & safety scores, displays graphical overlays, logs events, and hosts an interactive modern dashboard for situational monitoring.
+
+---
+
+## ✨ Key Features
+
+- 🎯 **Real-Time Object Detection**: Powered by YOLOv8 for accurate and fast inference, automatically adjusting to low-light conditions with CLAHE enhancement.
+- 🚶 **Intelligent Tracking**: Tracks multi-person movement and monitors specific spatial zones (loitering, trespassing).
+- 🧠 **Rule-Based Reasoning & AI Verification**: Classifies situations using local heuristics, with an optional cognitive layer using Google Gemini 1.5 Flash for complex scene verification.
+- 💬 **Natural Language Explanations**: Translates telemetry and visual data into human-readable descriptions of identified situations and risks.
+- 📊 **Dynamic Scoring System**: Computes real-time Safety (0-10) and Focus (0-100) scores based on identified behaviors and environmental factors.
+- 🌐 **Modern SituVision Dashboard**: A beautiful, responsive React/Vite web application for live monitoring, alerts, and historical data visualization.
+- 📝 **Comprehensive Data Logging**: Structured event logging into CSV format for auditing and historical analysis.
 
 ---
 
@@ -23,57 +42,67 @@ graph TD
     F -->|Focus & Safety Metrics| G
     D -->|Overlays| H[ui/opencv_view.py]
     G -->|CSV Event Entry| I[(data/events_log.csv)]
-    I -->|Historical Data| J[ui/dashboard.py]
+    I -->|Historical Data| J[SituVision AI React Frontend]
     H -->|Rendered Stream| J
 ```
 
 ---
 
-## 📂 Project Structure
+## ⚡ Quick Start
 
-```text
-situational-camera/
-├── main.py                # Main pipeline runner showing execution & call order
-├── intergration_test.py   # Integration test script for the pipeline components
-├── requirements.txt       # Project dependencies
-├── yolov8s.pt             # YOLOv8 Small model weights (locally stored, git-ignored)
-├── detection/             # Perception Layer
-│   ├── __init__.py
-│   ├── detector.py        # YOLOv8 object detector with CLAHE low-light enhancement
-│   └── tracker.py         # Multi-person tracking and spatial zone monitoring
-├── reasoning/             # Intelligence Proxy Layer
-│   ├── __init__.py
-│   ├── rule_engine.py     # Situation classification with local rules & optional Gemini verification
-│   ├── explainer.py       # Natural language explanation proxy with Gemini Vision or template fallback
-│   └── scorer.py          # Real-time safety & focus scoring proxy adjusting for Gemini confidence
-├── rules/                 # Intelligence Rules Layer
-│   ├── __init__.py
-│   ├── rule_engine.py     # Rule-based situation classification rules
-│   ├── test_rules.py      # Test script for rules
-│   └── test_zone_rules.py # Test script for zone-based classification rules
-├── explanation/           # Intelligence Explanation Layer
-│   ├── __init__.py
-│   └── explanation_generator.py # Natural language explanation templates
-├── scoring/               # Intelligence Scoring Layer
-│   ├── __init__.py
-│   └── scoring.py         # Base safety (0-10) and focus (0-100) scoring rules
-├── custom_logging/        # Storage Layer
-│   ├── __init__.py
-│   └── event_logger.py    # State-change event logger (writes to CSV)
-├── ui/                    # Interface Layer
-│   ├── __init__.py
-│   ├── opencv_view.py     # OpenCV HUD overlays (bounding boxes & telemetry)
-│   └── dashboard.py       # SituVision AI live Streamlit dashboard (monitoring, simulator, video upload, login page)
-├── data/                  # Data Assets
-│   ├── .gitkeep           # git placeholder
-│   └── events_log.csv     # Automatically generated event log
-└── scratch/               # Development Scratch scripts
-    ├── test_detection.py
-    ├── test_logger.py
-    ├── test_new_rules.py
-    ├── test_rendering.py
-    └── test_tracker.py
+### ⚙️ Prerequisites
+- **Python 3.8+**
+- **Node.js 16+** & **npm**
+- A valid Google Gemini API key (optional but recommended for advanced reasoning).
+
+### 🛠️ 1. Installation & Environment Setup
+
+Clone the repository and set up your virtual environment:
+
+```bash
+# Clone the repository
+git clone https://github.com/Chathuka-Pehesara/AI-Situational-Understanding-Camera.git
+cd AI-Situational-Understanding-Camera/situational-camera
+
+# Create and activate a virtual environment
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Install backend dependencies
+pip install -r requirements.txt
+
+# Install frontend dependencies
+cd web
+npm install
+cd ..
 ```
+
+Create a `.env` file in the `situational-camera/` directory to enable the Gemini cognitive pipeline:
+```env
+GOOGLE_API_KEY=your_gemini_api_key_here
+```
+
+### 🚀 2. Running the Backend API
+
+Start the FastAPI server from the `situational-camera/` directory:
+```bash
+uvicorn api.main:app --port 8000 --reload
+```
+> **Tip:** The Swagger Documentation will be accessible at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).  
+> **Endpoints:** Includes WebSocket stream for telemetry, active alerts, and CSV event loaders.
+
+### 🖥️ 3. Running the Frontend (SituVision AI)
+
+Start the Vite React development server:
+```bash
+cd web
+npm run dev
+```
+> Access the beautiful web interface at [http://localhost:5173](http://localhost:5173).  
+> **Credentials**: Sign in using any dummy email (e.g., `operator@situvision.ai`) and password.
 
 ---
 
@@ -81,7 +110,9 @@ situational-camera/
 
 Every module has been scaffolded to strict design contracts:
 
-### 1. Object Detection Contract
+<details>
+<summary><b>1. Object Detection Contract</b> (Click to expand)</summary>
+
 **Module**: `detection/detector.py` | **Function**: `detect_objects(frame)`
 * **Input**: OpenCV image frame (`numpy.ndarray`)
 * **Output**: `list` of dictionaries:
@@ -97,8 +128,11 @@ Every module has been scaffolded to strict design contracts:
   ]
   ```
 * **Enhancement**: Automatically applies CLAHE night-vision enhancement if the average pixel intensity drops below 75.
+</details>
 
-### 2. Movement & Zone Tracking Contract
+<details>
+<summary><b>2. Movement & Zone Tracking Contract</b> (Click to expand)</summary>
+
 **Module**: `detection/tracker.py` | **Functions**:
 * `is_moving(person_id, current_bbox) -> bool`
   * **Input**: Unique person ID (`int`/`str`), current bounding box coordinates `[x1, y1, x2, y2]`.
@@ -106,9 +140,12 @@ Every module has been scaffolded to strict design contracts:
 * `track_and_analyze_zones(detections, zones, loitering_threshold=5.0) -> list`
   * **Input**: Current detections, dictionary of zone polygons, and loitering time threshold.
   * **Output**: Detections decorated with `track_id` and `zone_info` (which includes details on trespassing, loitering, perimeter breach, etc.).
+</details>
 
-### 3. Rule Reasoning & AI Cognition Contract
-**Module**: `reasoning/rule_engine.py` (delegates to `rules/rule_engine.py`) | **Function**: `evaluate_situation(detections, movement_detected, frame=None, confidence_threshold=0.6) -> dict`
+<details>
+<summary><b>3. Rule Reasoning & AI Cognition Contract</b> (Click to expand)</summary>
+
+**Module**: `reasoning/rule_engine.py` | **Function**: `evaluate_situation(detections, movement_detected, frame=None, confidence_threshold=0.6) -> dict`
 * **Input**: List of current frame object detections, movement tracking boolean, optional raw image frame for Gemini verification, and confidence threshold.
 * **Output**: Evaluation outcome containing Gemini verification details:
   ```python
@@ -119,14 +156,20 @@ Every module has been scaffolded to strict design contracts:
       "gemini_verified": False  # True if verified/overridden via Google Gemini 1.5 Flash
   }
   ```
+</details>
 
-### 4. Natural Explanation Contract
-**Module**: `reasoning/explainer.py` (delegates to `explanation/explanation_generator.py`) | **Function**: `generate_explanation(frame, detections, situation, risk) -> str`
+<details>
+<summary><b>4. Natural Explanation Contract</b> (Click to expand)</summary>
+
+**Module**: `reasoning/explainer.py` | **Function**: `generate_explanation(frame, detections, situation, risk) -> str`
 * **Input**: Raw frame, current detections list, situation string, risk level string.
 * **Output**: Human-readable situation context generated by **Gemini Vision** or structured template fallback (e.g., `"Person is walking while using a phone."`).
+</details>
 
-### 5. Metric Scoring Contract
-**Module**: `reasoning/scorer.py` (delegates to `scoring/scoring.py`) | **Function**: `compute_scores(situation, risk, detections=None, gemini_confidence=None) -> dict`
+<details>
+<summary><b>5. Metric Scoring Contract</b> (Click to expand)</summary>
+
+**Module**: `reasoning/scorer.py` | **Function**: `compute_scores(situation, risk, detections=None, gemini_confidence=None) -> dict`
 * **Input**: Situation string, risk level string, optional detections list, optional Gemini confidence.
 * **Output**: Dynamic safety and focus metrics (scores are adjusted downwards if Gemini returns a low confidence):
   ```python
@@ -138,63 +181,39 @@ Every module has been scaffolded to strict design contracts:
       "gemini_confidence": 0.9 # float or None
   }
   ```
+</details>
 
-### 6. Event Logging Contract
+<details>
+<summary><b>6. Event Logging Contract</b> (Click to expand)</summary>
+
 **Module**: `custom_logging/event_logger.py` | **Function**: `log_event(event: dict)`
 * Appends event data schemas containing `timestamp`, `situation`, `risk`, `explanation`, `focus_score`, `safety_score`, `gemini_confidence`, and `gemini_verified` to `data/events_log.csv`.
+</details>
 
 ---
 
-## ⚡ Quick Start
+## 📂 Project Structure
 
-### ⚙️ Prerequisites
-* **Python 3.8+**
-* **Node.js 16+** & **npm**
-* A valid `.env` file inside the `situational-camera/` directory with `GOOGLE_API_KEY` to enable the Gemini cognitive pipeline:
-  ```env
-  GOOGLE_API_KEY=your_gemini_api_key_here
-  ```
-
-### 1. Installation & Environment Setup
-Clone the repository and install the backend and frontend dependencies:
-```bash
-# Clone the repository
-git clone https://github.com/Chathuka-Pehesara/AI-Situational-Understanding-Camera.git
-cd AI-Situational-Understanding-Camera/situational-camera
-
-# Create a virtual environment
-python -m venv venv
-
-# Activate it (Windows)
-.\venv\Scripts\activate
-
-# Install python dependencies
-pip install -r requirements.txt
-
-# Install frontend dependencies
-cd web
-npm install
-cd ..
+```text
+situational-camera/
+├── main.py                # Main pipeline runner showing execution & call order
+├── api/                   # FastAPI Backend
+├── web/                   # SituVision AI React Frontend (Vite)
+├── requirements.txt       # Project dependencies
+├── yolov8s.pt             # YOLOv8 Small model weights (locally stored, git-ignored)
+├── detection/             # Perception Layer (Detector, Tracker)
+├── reasoning/             # Intelligence Proxy Layer (Rules, Explainers, Scorers)
+├── rules/                 # Intelligence Rules Layer
+├── explanation/           # Intelligence Explanation Layer
+├── scoring/               # Intelligence Scoring Layer
+├── custom_logging/        # Storage Layer (CSV Event Logger)
+├── ui/                    # Interface Layer (OpenCV HUD overlays)
+├── data/                  # Data Assets (events_log.csv)
+└── scratch/               # Development Scratch scripts
 ```
-
-### 2. Running the Backend API
-Start the FastAPI server from the `situational-camera/` directory:
-```bash
-uvicorn api.main:app --port 8000 --reload
-```
-* **Swagger Documentation**: Accessible at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
-* **Endpoints**: Includes WebSocket stream, active alerts, and CSV event loaders.
-
-### 3. Running the React Frontend (SituVision AI)
-Start the Vite development server:
-```bash
-cd web
-npm run dev
-```
-* Access the web interface at [http://localhost:5173](http://localhost:5173).
-* **Credentials**: Sign in using any dummy email (default: `operator@situvision.ai`) and password.
 
 ---
 
 ## 📜 License
+
 Distributed under the MIT License. See [LICENSE](LICENSE) for details.
