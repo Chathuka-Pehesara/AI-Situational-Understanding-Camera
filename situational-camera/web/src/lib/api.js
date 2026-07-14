@@ -84,7 +84,10 @@ export const api = {
   
   // WS Endpoint constructor helper
   getWSStreamUrl: (cameraId) => {
-    const wsBaseUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8000";
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    // Auto-derive ws:// or wss:// from the API URL if VITE_WS_URL is missing
+    const defaultWsUrl = apiBase.replace(/^http/, "ws");
+    const wsBaseUrl = import.meta.env.VITE_WS_URL || defaultWsUrl;
     return `${wsBaseUrl}/ws/stream/${cameraId}`;
   }
 };
