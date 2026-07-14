@@ -15,7 +15,7 @@ export default function AlertSidebar({ alerts = [], onClear, isClearing = false 
   };
 
   return (
-    <div className="w-full xl:w-[350px] bg-bg-surface border border-border rounded-card flex flex-col h-full shadow-lg shrink-0">
+    <div className="w-full xl:w-[350px] bg-bg-surface border border-border rounded-card flex flex-col h-[400px] xl:h-full shadow-lg shrink-0">
       
       {/* Header */}
       <div className="px-5 py-4 border-b border-border flex items-center justify-between select-none">

@@ -91,7 +91,7 @@ export default function Dashboard() {
   const currentCamera = cameras.find((c) => c.id === selectedCameraId);
 
   return (
-    <div className="space-y-6 flex flex-col h-full min-w-0 animate-page-enter">
+    <div className="space-y-6 flex flex-col min-h-full min-w-0 animate-page-enter">
       
       {/* SECTION 1: Stats Summary Row */}
       <StatsRow 
