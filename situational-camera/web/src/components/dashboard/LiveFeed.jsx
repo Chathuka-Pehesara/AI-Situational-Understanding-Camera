@@ -195,7 +195,7 @@ export default function LiveFeed({
   };
 
   return (
-    <div className="bg-bg-surface border border-border rounded-card overflow-hidden flex flex-col flex-1 min-w-0 shadow-lg">
+    <div className="bg-bg-surface border border-border rounded-card overflow-hidden flex flex-col flex-1 min-h-[400px] xl:min-h-0 min-w-0 shadow-lg">
       
       {/* Top Header Controls */}
       <div className="shrink-0 px-5 py-3 border-b border-border bg-bg-surface/50 flex items-center justify-between select-none">
