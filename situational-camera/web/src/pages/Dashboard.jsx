@@ -8,6 +8,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import { useAlerts } from "../hooks/useAlerts";
 
 export default function Dashboard() {
+  console.log("VERCEL_DEPLOY_CHECK_123");
   const { cameras, loading: camerasLoading, fetchCameras } = useCamera();
   const { alerts, clearAlerts, addLocalAlert } = useAlerts();
   
