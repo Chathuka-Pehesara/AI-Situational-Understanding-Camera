@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
+import torch
 from ultralytics import YOLO
+
+# Limit PyTorch threads to prevent Out Of Memory (OOM) crashes on 512MB Render free tier
+torch.set_num_threads(1)
 
 # Initialize YOLOv8 models globally to avoid loading them on every frame
 _model = None
@@ -81,8 +85,8 @@ TARGET_CLASSES = list(CLASS_MAPPING.keys())
 def _get_model():
     global _model
     if _model is None:
-        # Load yolov8s.pt model for higher accuracy (will download automatically if not present)
-        _model = YOLO("yolov8s.pt")
+        # Load yolov8n.pt model to prevent Out-Of-Memory crashes on 512MB Render free tier
+        _model = YOLO("yolov8n.pt")
     return _model
 
 def enhance_low_light(frame):
