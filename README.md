@@ -3,28 +3,7 @@
 <div align="center">
   <p><strong>An intelligent real-time camera processing pipeline for object detection, movement tracking, and situational reasoning.</strong></p>
 
-  [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg?style=for-the-badge&logo=python)](https://www.python.org/)
-  [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
-  [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-  [![YOLOv8](https://img.shields.io/badge/YOLOv8-Vision-green.svg?style=for-the-badge&logo=ultralytics)](https://github.com/ultralytics/ultralytics)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-</div>
-
-<br />
-
-By combining spatial awareness with custom rule-based heuristics and Generative AI, this system calculates real-time focus & safety scores, displays graphical overlays, logs events, and hosts an interactive modern dashboard for situational monitoring.
-
----
-
-## ✨ Key Features
-
-- 🎯 **Real-Time Object Detection**: Powered by YOLOv8 for accurate and fast inference, automatically adjusting to low-light conditions with CLAHE enhancement.
-- 🚶 **Intelligent Tracking**: Tracks multi-person movement and monitors specific spatial zones (loitering, trespassing).
-- 🧠 **Rule-Based Reasoning & AI Verification**: Classifies situations using local heuristics, with an optional cognitive layer using Google Gemini 1.5 Flash for complex scene verification.
-- 💬 **Natural Language Explanations**: Translates telemetry and visual data into human-readable descriptions of identified situations and risks.
-- 📊 **Dynamic Scoring System**: Computes real-time Safety (0-10) and Focus (0-100) scores based on identified behaviors and environmental factors.
-- 🌐 **Modern SituVision Dashboard**: A beautiful, responsive React/Vite web application for live monitoring, alerts, and historical data visualization.
-- 📝 **Comprehensive Data Logging**: Structured event logging into CSV format for auditing and historical analysis.
+An intelligent real-time camera processing pipeline that performs object detection, movement tracking, and situational reasoning. By combining spatial awareness with custom rule-based heuristics, this system calculates real-time focus & safety scores, displays graphical overlays, logs events, and hosts an interactive Streamlit dashboard.This is made using a Gemini-api key. 
 
 ---
 

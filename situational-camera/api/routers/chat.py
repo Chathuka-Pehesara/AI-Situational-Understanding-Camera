@@ -134,9 +134,14 @@ Instructions:
         response = gemini_model.generate_content(prompt)
         answer = response.text.strip()
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generating answer from Gemini: {e}"
+        print(f"Gemini API Error: {e}")
+        answer = (
+            f"Gemini API encountered an error (e.g., invalid API key or quota exceeded). "
+            f"Here is an automated search response:\n\n"
+            f"I found {len(filtered)} total events logged in the selected period. "
+            f"There are {len([e for e in filtered if e['risk'] == 'High'])} High risk events. "
+            f"The most common situation was '{filtered[0]['situation'] if filtered else 'None'}'. "
+            f"Please check your GOOGLE_API_KEY configuration."
         )
 
     return {

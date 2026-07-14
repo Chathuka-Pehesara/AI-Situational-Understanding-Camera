@@ -45,8 +45,8 @@ export default function AskFootage() {
     const fetchCount = async () => {
       try {
         const res = await api.searchEvents({
-          dateFrom: dateFrom || null,
-          dateTo: dateTo || null,
+          date_from: dateFrom || null,
+          date_to: dateTo || null,
           limit: 1000
         });
         setTotalCount(res.total_count || 0);
