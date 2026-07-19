@@ -19,7 +19,7 @@ export default function AskFootage() {
   const [messages, setMessages] = useState([
     {
       sender: "gemini",
-      text: "Hello! I am your SituVision AI assistant. Ask me questions about today's security incidents, safety scores, loitering events, or restricted zone breaches. I will analyze the surveillance logs and provide details.",
+      text: "Hello! I am your AI Proctor assistant. Ask me questions about today's exam incidents, focus scores, cheating attempts, or attention warnings. I will analyze the exam logs and provide details.",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       relevantEvents: []
     }
@@ -249,7 +249,7 @@ export default function AskFootage() {
                     <div className="space-y-2 mt-2">
                       <div className="text-[10px] uppercase font-bold tracking-widest text-text-muted flex items-center gap-1 leading-none select-none">
                         <ShieldAlert className="w-3.5 h-3.5" />
-                        <span>Referencing Security Logs</span>
+                        <span>Referencing Exam Logs</span>
                       </div>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -314,7 +314,7 @@ export default function AskFootage() {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               className="w-full bg-bg-base border border-border focus:border-accent-blue rounded-input py-3 pl-10 pr-4 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-blue transition-colors font-medium placeholder-text-muted"
-              placeholder="Ask a question about your surveillance logs (e.g. 'was loitering detected?')..."
+              placeholder="Ask a question about your exam logs (e.g. 'was cheating detected?')..."
             />
           </div>
 

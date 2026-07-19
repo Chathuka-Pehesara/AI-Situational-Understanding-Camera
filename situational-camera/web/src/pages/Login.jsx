@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Cctv, ShieldCheck, Cpu, BellRing, Lock, Mail, Loader2 } from "lucide-react";
+import { GraduationCap, ShieldCheck, Cpu, BellRing, Lock, Mail, Loader2, Zap, Video, ArrowRight } from "lucide-react";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("operator@situvision.ai");
@@ -16,7 +16,6 @@ export default function Login({ onLogin }) {
     setError("");
     setIsScanning(true);
 
-    // Simulate connection / scan animation for 1.5 seconds
     setTimeout(() => {
       setIsScanning(false);
       onLogin(email);
@@ -24,105 +23,102 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="w-screen h-screen bg-bg-base flex overflow-hidden relative font-sans">
+    <div 
+      className="w-screen h-screen flex overflow-hidden relative font-sans opacity-0"
+      style={{ animation: 'page-enter 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards' }}
+    >
       
-      {/* LEFT HALF (60%): Aesthetic branding and visual details */}
-      <div className="hidden lg:flex w-[60%] h-full relative flex-col justify-between p-12 bg-dot-grid border-r border-border select-none">
+      {/* LEFT HALF (50%): Dark theme branding */}
+      <div className="hidden lg:flex w-1/2 h-full flex-col justify-between p-16 bg-[#0A0F1C] bg-dot-grid border-r border-slate-800/50 select-none relative">
         
-        {/* Abstract animated background elements */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[20%] left-[10%] w-72 h-72 rounded-full bg-accent-blue/10 blur-[100px] animate-pulse" style={{ animationDuration: '8s' }}></div>
-          <div className="absolute bottom-[20%] right-[10%] w-96 h-96 rounded-full bg-accent-purple/10 blur-[120px] animate-pulse" style={{ animationDuration: '10s' }}></div>
-          
-          {/* Animated floating particles */}
-          <div className="absolute top-1/4 left-1/3 w-2 h-2 bg-accent-cyan rounded-full opacity-60 animate-ping" style={{ animationDuration: '4s' }}></div>
-          <div className="absolute bottom-1/3 left-1/4 w-3 h-3 bg-accent-purple rounded-full opacity-40 animate-bounce" style={{ animationDuration: '6s' }}></div>
-          <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 bg-accent-blue rounded-full opacity-50 animate-pulse" style={{ animationDuration: '3s' }}></div>
-        </div>
-
         {/* Top bar header */}
         <div className="flex items-center gap-3 z-10">
-          <div className="w-10 h-10 rounded-btn bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.25)]">
-            <Cctv className="w-5 h-5 text-accent-blue" />
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+            <GraduationCap className="w-5 h-5 text-blue-400" />
           </div>
-          <span className="font-extrabold text-xl bg-gradient-to-r from-accent-blue via-accent-purple to-accent-cyan bg-clip-text text-transparent tracking-wide">
-            SituVision AI
+          <span className="font-extrabold text-xl text-white tracking-wide">
+            SituVision <span className="text-blue-400">AI</span>
           </span>
         </div>
 
         {/* Hero title & features */}
-        <div className="my-auto z-10 max-w-xl">
-          <h1 className="text-5xl font-black text-text-primary leading-[1.15] mb-6">
-            Intelligent Security{" "}
-            <span className="bg-gradient-to-r from-accent-blue via-accent-purple to-accent-cyan bg-clip-text text-transparent">
+        <div className="my-auto z-10 max-w-lg">
+          
+          <div className="inline-flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 rounded-full px-3 py-1.5 mb-8 backdrop-blur-sm">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]"></div>
+            <span className="text-cyan-300 text-xs font-semibold tracking-wide">Proctoring Dashboard v2.0</span>
+          </div>
+
+          <h1 className="text-5xl font-extrabold !text-white leading-[1.15] mb-5 tracking-tight">
+            AI Exam Proctoring<br/>
+            <span className="bg-gradient-to-r from-[#38BDF8] to-[#C084FC] bg-clip-text text-transparent">
               Supervision
-            </span>{" "}
-            Powered by Gemini
+            </span>
           </h1>
-          <p className="text-base text-text-secondary mb-8 leading-relaxed">
-            A next-generation Surveillance Operations Center integrating computer vision models with real-time generative reasoning. Detect threats, analyze zones, and ask footage queries instantly.
+          <p className="text-[15px] text-[#8A9BC4] mb-10 leading-relaxed font-medium">
+            Elevate your proctoring operations. Harness real-time computer vision paired with generative reasoning to instantly detect, track, and resolve anomalies.
           </p>
 
-          {/* Feature Pills */}
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 bg-bg-surface border border-border px-4 py-2.5 rounded-full text-xs font-semibold text-text-primary shadow-lg hover:border-border-bright transition-colors duration-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-severity-critical animate-[pulse-live_1.5s_infinite]"></span>
-              Live Detection
+          {/* Feature List (Vertical) */}
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-4 text-sm text-[#E8EEFF] font-medium">
+              <div className="p-2 bg-white/5 rounded-lg border border-white/10">
+                <Zap className="w-4 h-4 text-[#818CF8]" />
+              </div>
+              <span>Sub-second real-time object detection</span>
             </div>
-            <div className="flex items-center gap-2 bg-bg-surface border border-border px-4 py-2.5 rounded-full text-xs font-semibold text-text-primary shadow-lg hover:border-border-bright transition-colors duration-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-accent-purple"></span>
-              Gemini Vision
+            <div className="flex items-center gap-4 text-sm text-[#E8EEFF] font-medium">
+              <div className="p-2 bg-white/5 rounded-lg border border-white/10">
+                <ShieldCheck className="w-4 h-4 text-[#818CF8]" />
+              </div>
+              <span>Automated perimeter & loitering alerts</span>
             </div>
-            <div className="flex items-center gap-2 bg-bg-surface border border-border px-4 py-2.5 rounded-full text-xs font-semibold text-text-primary shadow-lg hover:border-border-bright transition-colors duration-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-accent-cyan"></span>
-              Smart Alerts
+            <div className="flex items-center gap-4 text-sm text-[#E8EEFF] font-medium">
+              <div className="p-2 bg-white/5 rounded-lg border border-white/10">
+                <Video className="w-4 h-4 text-[#818CF8]" />
+              </div>
+              <span>Seamless multi-stream camera integration</span>
             </div>
           </div>
         </div>
 
         {/* Footer legalities */}
-        <div className="text-xs text-text-muted z-10 select-none">
-          © {new Date().getFullYear()} SituVision AI Security Corp. All rights reserved.
+        <div className="text-xs text-slate-500 font-medium z-10 select-none">
+          © {new Date().getFullYear()} AI Exam Proctoring Solutions.
         </div>
       </div>
 
-      {/* RIGHT HALF (40%): Login Form */}
-      <div className="w-full lg:w-[40%] h-full flex flex-col justify-center items-center p-8 bg-bg-base z-10">
+      {/* RIGHT HALF (50%): Light Theme Form */}
+      <div className="w-full lg:w-1/2 h-full flex flex-col justify-center items-center p-8 bg-white z-10">
         
-        {/* Frosted Glass Login Card */}
-        <div className="w-full max-w-md relative overflow-hidden backdrop-blur-xl bg-white/5 border border-white/10 rounded-card p-10 shadow-[0_20px_50px_rgba(10,14,26,0.8)]">
+        <div className="w-full max-w-[380px]">
           
-          {/* Scanning Sweep Line (triggers on form submission) */}
-          {isScanning && (
-            <div className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent-cyan to-transparent animate-scan z-20 pointer-events-none" />
-          )}
-
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-text-primary mb-2">Welcome Back</h2>
-            <p className="text-xs text-text-secondary">Authorized SOC personnel authentication required</p>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-slate-900 mb-2.5">Welcome Back</h2>
+            <p className="text-sm text-slate-500 font-medium">Log in to the Operations Center</p>
           </div>
 
           {error && (
-            <div className="mb-4 bg-severity-critical/15 border border-severity-critical/30 rounded-btn p-3 text-xs text-text-primary font-medium text-center">
+            <div className="mb-6 bg-red-50 border border-red-100 rounded-xl p-3.5 text-sm text-red-600 font-medium text-center">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             
             {/* Email Field */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-secondary tracking-wide block">Email Address</label>
+              <label className="text-xs font-bold text-slate-700 tracking-wide block">Work Email</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted pointer-events-none">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 pointer-events-none">
                   <Mail className="w-4 h-4" />
                 </span>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-bg-surface hover:bg-bg-elevated/50 focus:bg-bg-surface border border-border focus:border-accent-blue rounded-input py-2.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-blue transition-all duration-300 font-medium placeholder-text-muted"
-                  placeholder="name@agency.gov"
+                  className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-500 rounded-xl py-3.5 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
+                  placeholder="operator@situvision.ai"
                   disabled={isScanning}
                 />
               </div>
@@ -131,43 +127,44 @@ export default function Login({ onLogin }) {
             {/* Password Field */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-text-secondary tracking-wide block">Security Key</label>
+                <label className="text-xs font-bold text-slate-700 tracking-wide block">Security Key</label>
+                <a href="#" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">Forgot key?</a>
               </div>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted pointer-events-none">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 pointer-events-none">
                   <Lock className="w-4 h-4" />
                 </span>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-bg-surface hover:bg-bg-elevated/50 focus:bg-bg-surface border border-border focus:border-accent-blue rounded-input py-2.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-blue transition-all duration-300 font-medium placeholder-text-muted"
+                  className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-500 rounded-xl py-3.5 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
                   placeholder="••••••••••••"
                   disabled={isScanning}
                 />
               </div>
             </div>
 
-            {/* Auth Button with glowing hover */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isScanning}
-              className="w-full bg-gradient-to-r from-accent-blue to-accent-purple hover:scale-[1.02] focus:scale-98 text-text-primary font-bold py-3 px-4 rounded-btn text-sm cursor-pointer shadow-[0_4px_15px_rgba(59,130,246,0.2)] hover:shadow-[0_0_25px_rgba(59,130,246,0.45)] transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full mt-2 bg-[#0F172A] hover:bg-[#1E293B] text-white font-bold py-3.5 px-4 rounded-xl text-sm cursor-pointer shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
             >
               {isScanning ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Scanning Credentials...</span>
+                  <span>Authenticating...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>Sign In to SOC</span>
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
 
           </form>
-
         </div>
       </div>
       

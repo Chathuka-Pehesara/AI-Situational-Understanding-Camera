@@ -6,7 +6,7 @@ import {
   Video, 
   MessageSquareCode, 
   LogOut, 
-  Cctv 
+  GraduationCap 
 } from "lucide-react";
 
 export default function Sidebar({ currentPage, setCurrentPage, onLogout, systemStatus }) {
@@ -23,7 +23,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onLogout, systemS
       <div>
         {/* Logo Section */}
         <div className="h-[64px] border-b border-border flex items-center px-6 gap-3">
-          <Cctv className="w-7 h-7 text-accent-blue" />
+          <GraduationCap className="w-7 h-7 text-accent-blue" />
           <span className="font-extrabold text-lg bg-gradient-to-r from-accent-blue via-accent-purple to-accent-cyan bg-clip-text text-transparent">
             SituVision AI
           </span>
@@ -49,14 +49,19 @@ export default function Sidebar({ currentPage, setCurrentPage, onLogout, systemS
               <button
                 key={item.id}
                 onClick={() => setCurrentPage(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-btn text-sm font-semibold transition-all duration-200 relative group overflow-hidden cursor-pointer ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-btn text-sm font-medium transition-all duration-200 relative group overflow-hidden ${
                   isActive
-                    ? "sidebar-active-blob text-white"
-                    : "text-text-secondary hover:bg-bg-elevated/50 hover:text-text-primary"
+                    ? "bg-bg-elevated text-text-primary"
+                    : "text-text-secondary hover:bg-bg-elevated/40 hover:text-text-primary"
                 }`}
               >
+                {/* Active left border indicator slide in */}
+                {isActive && (
+                  <span className="absolute left-0 top-0 w-1 h-full bg-accent-blue animate-[border-slide_0.2s_ease-out_forwards]" />
+                )}
+                
                 <Icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
-                  isActive ? "text-white" : "text-text-muted group-hover:text-text-secondary"
+                  isActive ? "text-accent-blue" : "text-text-muted group-hover:text-text-secondary"
                 }`} />
                 <span>{item.label}</span>
               </button>
@@ -73,7 +78,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onLogout, systemS
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-text-primary leading-tight">Operator 01</span>
-            <span className="text-[10px] text-text-muted leading-tight">SOC Administrator</span>
+            <span className="text-[10px] text-text-muted leading-tight">Chief Proctor</span>
           </div>
         </div>
         <button

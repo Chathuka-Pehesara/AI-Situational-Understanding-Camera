@@ -5,7 +5,8 @@ import json
 import cv2
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
-CAMERAS_FILE = "data/cameras.json"
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CAMERAS_FILE = os.path.join(base_dir, "data", "cameras.json")
 
 class CameraCreate(BaseModel):
     name: str
@@ -30,7 +31,8 @@ import shutil
 
 @router.post("/upload")
 async def upload_video(file: UploadFile = File(...)):
-    uploads_dir = "data/uploads"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    uploads_dir = os.path.join(base_dir, "data", "uploads")
     os.makedirs(uploads_dir, exist_ok=True)
     file_path = os.path.join(uploads_dir, file.filename)
     
@@ -73,7 +75,10 @@ def add_camera(camera_data: CameraCreate):
         cap.release()
         status_text = "Live"
     else:
-        status_text = "Offline"
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Failed to open video source: {actual_source}. Please ensure it is a valid MP4 file."
+        )
 
     new_camera = {
         "id": camera_id,

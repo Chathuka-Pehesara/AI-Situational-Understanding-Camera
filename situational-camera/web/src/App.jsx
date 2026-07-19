@@ -8,9 +8,11 @@ import Cameras from "./pages/Cameras";
 import AskFootage from "./pages/AskFootage";
 import { useCamera } from "./hooks/useCamera";
 import { useAlerts } from "./hooks/useAlerts";
+import IntroManager from "./components/intro/IntroManager";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const [currentPage, setCurrentPage] = useState("dashboard");
 
@@ -24,6 +26,7 @@ export default function App() {
     if (savedUser) {
       setUserEmail(savedUser);
       setIsLoggedIn(true);
+      setShowIntro(false); // Skip intro if already logged in
     }
   }, []);
 
@@ -38,7 +41,12 @@ export default function App() {
     localStorage.removeItem("soc_session_user");
     setUserEmail("");
     setIsLoggedIn(false);
+    setShowIntro(true); // Show intro again upon logout for full experience
   };
+
+  if (showIntro) {
+    return <IntroManager onComplete={() => setShowIntro(false)} />;
+  }
 
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;

@@ -12,17 +12,19 @@ load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
-    gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+    gemini_model = genai.GenerativeModel("gemini-2.5-flash")
 else:
     gemini_model = None
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
+from typing import Optional
+
 class ChatRequest(BaseModel):
     question: str
-    date_from: str = None  # YYYY-MM-DD
-    date_to: str = None    # YYYY-MM-DD
-    camera_id: str = None
+    date_from: Optional[str] = None  # YYYY-MM-DD
+    date_to: Optional[str] = None    # YYYY-MM-DD
+    camera_id: Optional[str] = None
 
 @router.post("")
 def ask_footage(req: ChatRequest):

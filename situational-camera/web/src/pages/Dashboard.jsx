@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; // Trigger deploy
 import StatsRow from "../components/dashboard/StatsRow";
 import LiveFeed from "../components/dashboard/LiveFeed";
 import AlertSidebar from "../components/dashboard/AlertSidebar";
@@ -8,6 +8,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import { useAlerts } from "../hooks/useAlerts";
 
 export default function Dashboard() {
+  console.log("VERCEL_DEPLOY_CHECK_123");
   const { cameras, loading: camerasLoading, fetchCameras } = useCamera();
   const { alerts, clearAlerts, addLocalAlert } = useAlerts();
   
@@ -90,7 +91,7 @@ export default function Dashboard() {
   const currentCamera = cameras.find((c) => c.id === selectedCameraId);
 
   return (
-    <div className="space-y-6 flex flex-col h-full min-w-0 animate-page-enter">
+    <div className="space-y-6 flex flex-col min-h-full min-w-0 animate-page-enter">
       
       {/* SECTION 1: Stats Summary Row */}
       <StatsRow 
@@ -129,13 +130,14 @@ export default function Dashboard() {
         
       </div>
 
-      {/* SECTION 3: Detailed Gemini Reasoning logs */}
+      {/* SECTION 3: Detailed Scene Reasoning */}
       <GeminiPanel 
         situation={streamData.situation}
         risk={streamData.risk}
         explanation={streamData.explanation}
         confidence={streamData.gemini_confidence}
         geminiVerified={streamData.gemini_verified}
+        detections={streamData.detections}
       />
 
     </div>

@@ -13,6 +13,7 @@ app = FastAPI(
 origins = [
     "http://localhost:5173", # React Vite dev server
     "http://127.0.0.1:5173",
+    "https://ai-situational-understanding-camera.vercel.app", # Deployed Vercel frontend
 ]
 
 app.add_middleware(
