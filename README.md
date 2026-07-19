@@ -5,7 +5,7 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B.svg)](https://streamlit.io/)
 [![YOLOv8](https://img.shields.io/badge/YOLOv8-Computer--Vision-green.svg)](https://github.com/ultralytics/ultralytics)
 
-An intelligent real-time camera processing pipeline that performs object detection, movement tracking, and situational reasoning. By combining spatial awareness with custom rule-based heuristics, this system calculates real-time focus & safety scores, displays graphical overlays, logs events, and hosts an interactive Streamlit dashboard.This is made using a Gemini-api key. 
+An intelligent is a real-time camera processing pipeline that performs object detection, movement tracking, and situational reasoning. By combining spatial awareness with custom rule-based heuristics, this system calculates real-time focus & safety scores, displays graphical overlays, logs events, and hosts an interactive Streamlit dashboard.This is made using a Gemini-api key. 
 
 ---
 
